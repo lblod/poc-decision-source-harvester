@@ -12,7 +12,6 @@ npm install --global http-server
 # Run
 
 ```
-cd dist/
 http-server --cors
 ```
 
