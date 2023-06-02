@@ -9,6 +9,15 @@ npm install
 npm install --global http-server
 ```
 
+# Build
+
+```
+npm run build
+```
+
+Now, you need to rebuild the app each time you want to test a specific `interestedMunicipality`.
+
+
 # Run
 
 ```
