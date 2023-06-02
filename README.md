@@ -24,4 +24,4 @@ Now, you need to rebuild the app each time you want to test a specific `interest
 http-server --cors
 ```
 
-Go to `http://127.0.0.1:8080/dist/` and check out the console where you should see the harvesting progress
+Go to `http://127.0.0.1:8081/dist/` and check out the console where you should see the harvesting progress

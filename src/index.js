@@ -3,13 +3,25 @@ import zipcelx from "zipcelx";
 // import { ProxyHandlerStatic } from "https://cdn.skypack.dev/@comunica/actor-http-proxy@2.6.9";
 // import zipcelx from "https://cdn.skypack.dev/zipcelx@1.6.2";
 const proxy = "https://proxy.linkeddatafragments.org/";
+//const proxy = "http://localhost:8080/";
 
 const data = [];
+// Put in comment when you do not want to harvest a specific municipality
+// You can remove the entrypoint when you want to use the default scheduled entry point
+//const interestedMunicipality = {
+//   "municipalityLabel": "Liedekerke",
+//   "entrypoint": "https://liedekerke.powerappsportals.com//zittingen/?id=635fff7e-52a8-ed11-aad1-000d3ad98364"
+//};
 
 function getLinkToPublications(municipalities) {
   return new Promise((resolve, reject) => {
     try {
-      const publications = [];
+      let publications = [];
+      // Add entrypoint to publications when interestedMunicipality has been set
+      if (typeof interestedMunicipality !== "undefined" && interestedMunicipality.entrypoint) {
+         publications = municipalities.map((m) => { return m.entrypoint });
+      }
+      // By default add entrypoint as publication too
       const sources = municipalities.map((m) => { return m.entrypoint });
       new ComunicaLinkTraversal.QueryEngine().queryBindings(`
           select DISTINCT ?o
@@ -284,10 +296,13 @@ $(document).ready(async () => {
     const blueprintOfAP = await getBlueprintOfApplicationProfile();
   
     // 2. Get publications for one specific municipality or for every municipality
-    const interestedMunicipality = "";
-    if (interestedMunicipality != "") {
-      const m = municipalities.find(m => m.municipalityLabel === interestedMunicipality);
-      if (m) await processMunicipality(municipalities, m, blueprintOfAP);
+    if (typeof interestedMunicipality !== "undefined") {
+      if (interestedMunicipality.municipalityLabel && interestedMunicipality.entrypoint) await processMunicipality(municipalities, interestedMunicipality, blueprintOfAP);
+      else if (interestedMunicipality.municipalityLabel) {
+        const m = municipalities.find(m => m.municipalityLabel === interestedMunicipality.municipalityLabel);
+      
+      if (m) await processMunicipality(municipalities, m, blueprintOfAP); 
+      }
       else console.log("Municipality not scheduled.");
     } else {
       for (const m of municipalities) {
