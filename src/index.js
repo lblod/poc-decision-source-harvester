@@ -352,7 +352,7 @@ async function processMunicipality(municipalities, m, blueprintOfAP) {
   };
   
   // Blue print based on a number of publications
-  const blueprintOfMunicipality = await getBlueprintOfMunicipality(publicationsFromSourceWithoutSessionId.slice(0,20));
+  const blueprintOfMunicipality = await getBlueprintOfMunicipality(getRandom(publicationsFromSourceWithoutSessionId, 30));
   // Add blueprint to report
   for (const b of blueprintOfAP) {
     let label = b.name;
@@ -395,8 +395,19 @@ function handleExportToExcel() {
     }
 }
 
-
-
+function getRandom(arr, n) {
+  var result = new Array(n),
+      len = arr.length,
+      taken = new Array(len);
+  if (n > len)
+      throw new RangeError("getRandom: more elements taken than available");
+  while (n--) {
+      var x = Math.floor(Math.random() * len);
+      result[n] = arr[x in taken ? taken[x] : x];
+      taken[x] = --len in taken ? taken[len] : len;
+  }
+  return result;
+}
 
 // IGNORE WHAT IS BELOW HERE
 // Updaten van de template
