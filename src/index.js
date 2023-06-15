@@ -6,6 +6,8 @@ const proxy = "https://proxy.linkeddatafragments.org/";
 //const proxy = "http://localhost:8080/";
 
 const data = [];
+// const start_at =193;
+
 // Put in comment when you do not want to harvest a specific municipality
 // You can remove the entrypoint when you want to use the default scheduled entry point
 //const interestedMunicipality = {
@@ -42,6 +44,9 @@ function getLinkToPublications(municipalities) {
         });
         bindingsStream.on('end', function() {
           resolve(publications);
+        });
+        bindingsStream.on('error', function() {
+          console.log(error);
         });
       });
     } catch (e) {
@@ -86,6 +91,9 @@ where {
         });
         bindingsStream.on('end', function() {
           resolve(municipalities);
+        });
+        bindingsStream.on('error', function() {
+          console.log(error);
         });
       });
     } catch (e) {
@@ -133,6 +141,9 @@ function isPublicationRetrieved(linkToPublication, municipalityLabel) {
         bindingsStream.on('end', function() {
           resolve(false);
         });
+        bindingsStream.on('error', function() {
+          console.log(error);
+        });
       });
     } catch (e) {
       reject(e);
@@ -178,6 +189,9 @@ function getCollectedPublications(municipalityLabel) {
         bindingsStream.on('end', function() {
           resolve(collectedPublications);
         });
+        bindingsStream.on('error', function() {
+          console.log(error);
+        });
       });
     } catch (e) {
       reject(e);
@@ -213,6 +227,9 @@ where {
         });
         bindingsStream.on('end', function() {
           resolve(blueprint);
+        });
+        bindingsStream.on('error', function() {
+          console.log(error);
         });
       });
     } catch (e) {
@@ -269,6 +286,9 @@ WHERE {
         bindingsStream.on('end', function() {
           resolve(blueprint);
         });
+        bindingsStream.on('error', function() {
+          console.log(error);
+        });
       });
     } catch (e) {
       reject(e);
@@ -301,16 +321,25 @@ $(document).ready(async () => {
       else if (interestedMunicipality.municipalityLabel) {
         const m = municipalities.find(m => m.municipalityLabel === interestedMunicipality.municipalityLabel);
       
-      if (m) await processMunicipality(municipalities, m, blueprintOfAP); 
+        if (m) await processMunicipality(municipalities, m, blueprintOfAP); 
       }
       else console.log("Municipality not scheduled.");
-    } else {
-      for (const m of municipalities) {
-          await processMunicipality(municipalities, m, blueprintOfAP);
+    } 
+    else {
+      let municipalities_sliced = municipalities;
+
+      if (typeof start_at !== "undefined") {
+        municipalities_sliced = municipalities.slice(start_at-1);
+      }
+
+      for (const m of municipalities_sliced) {
+        await processMunicipality(municipalities_sliced, m, blueprintOfAP);
       }     
     }
     
     console.log("done");
+
+    handleExportToExcel();
     // $("#snippet").html(JSON.stringify(template, undefined, 4));
 
     //$("#input-voornaam").on("input", function() {
@@ -331,7 +360,7 @@ async function processMunicipality(municipalities, m, blueprintOfAP) {
   let brokenLinksToPublications = false;
   if (publicationsFromSource.length != publicationsFromSourceWithoutSessionId.length) brokenLinksToPublications = true;
   console.log(publicationsFromSource.length + " publications found for municipality: " + m.municipalityLabel);
-
+  
   const publicationsCollected = await getCollectedPublications(m.municipalityLabel);
   //console.log(publicationsCollected.length + " publications have been collected by harvester for municipality: " + m.municipalityLabel);
 
@@ -351,14 +380,16 @@ async function processMunicipality(municipalities, m, blueprintOfAP) {
     "Publications not available anymore at source:": publicationsHarvestedButNotFoundAtSource
   };
   
-  // Blue print based on a number of publications
-  const blueprintOfMunicipality = await getBlueprintOfMunicipality(getRandom(publicationsFromSourceWithoutSessionId, 30));
-  // Add blueprint to report
-  for (const b of blueprintOfAP) {
-    let label = b.name;
-    if (b.niveau != "") label += " (" + b.niveau + ")";
-    if (blueprintOfMunicipality.includes(b.uri)) report[label] = "X";
-    else report[label] = "";
+  if(publicationsFromSource.length > 0 && publicationsFromSource.length >= 30){
+    // Blue print based on a number of publications
+    const blueprintOfMunicipality = await getBlueprintOfMunicipality(getRandom(publicationsFromSourceWithoutSessionId, 30));
+    // Add blueprint to report
+    for (const b of blueprintOfAP) {
+      let label = b.name;
+      if (b.niveau != "") label += " (" + b.niveau + ")";
+      if (blueprintOfMunicipality.includes(b.uri)) report[label] = "X";
+      else report[label] = "";
+    }
   }
   
   data.push(report);
@@ -399,8 +430,11 @@ function getRandom(arr, n) {
   var result = new Array(n),
       len = arr.length,
       taken = new Array(len);
-  if (n > len)
-      throw new RangeError("getRandom: more elements taken than available");
+  if (n > len){
+    n = len;
+    console.log(`getRandom: more elements taken than available. Will use ${len} as the number of elements.`);
+  }
+      // throw new RangeError("getRandom: more elements taken than available");
   while (n--) {
       var x = Math.floor(Math.random() * len);
       result[n] = arr[x in taken ? taken[x] : x];
