@@ -1,12 +1,14 @@
 {
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack --mode='development'"
+    "build": "webpack --mode=development",
+    "start:dev": "webpack-dev-server --mode=development --open --config webpack.config.js"
   },
   "devDependencies": {
     "buffer": "^6.0.3",
     "webpack": "^5.84.1",
-    "webpack-cli": "^5.1.1"
+    "webpack-cli": "^5.1.1",
+    "webpack-dev-server": "^4.15.1"
   },
   "dependencies": {
     "@comunica/actor-http-proxy": "^2.7.0",
