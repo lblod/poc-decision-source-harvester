@@ -5,15 +5,16 @@ import zipcelx from "zipcelx";
 const proxy = "https://proxy.linkeddatafragments.org/";
 //const proxy = "http://localhost:8080/";
 
+const NUMBER_OF_PUBLICATIONS_FOR_BLUEPRINT = 30;
 const data = [];
 // const start_at =193;
 
 // Put in comment when you do not want to harvest a specific municipality
 // You can remove the entrypoint when you want to use the default scheduled entry point
-//const interestedMunicipality = {
-//   "municipalityLabel": "Liedekerke",
-//   "entrypoint": "https://liedekerke.powerappsportals.com//zittingen/?id=635fff7e-52a8-ed11-aad1-000d3ad98364"
-//};
+//  const interestedMunicipality = {
+//    "municipalityLabel": "Mesen Gemeente",
+//    "entrypoint": "https://kalmthout.bestuurlijkeinformatie.nl/OpenLinkedData/Index/9aa60dcb-0539-4b5d-9cfd-139c31a834c7"
+//  };
 
 function getLinkToPublications(municipalities) {
   return new Promise((resolve, reject) => {
@@ -380,16 +381,15 @@ async function processMunicipality(municipalities, m, blueprintOfAP) {
     "Publications not available anymore at source:": publicationsHarvestedButNotFoundAtSource
   };
   
-  if(publicationsFromSource.length > 0 && publicationsFromSource.length >= 30){
-    // Blue print based on a number of publications
-    const blueprintOfMunicipality = await getBlueprintOfMunicipality(getRandom(publicationsFromSourceWithoutSessionId, 30));
-    // Add blueprint to report
-    for (const b of blueprintOfAP) {
-      let label = b.name;
-      if (b.niveau != "") label += " (" + b.niveau + ")";
-      if (blueprintOfMunicipality.includes(b.uri)) report[label] = "X";
-      else report[label] = "";
-    }
+  const numberForBlueprint = publicationsFromSourceWithoutSessionId.length < NUMBER_OF_PUBLICATIONS_FOR_BLUEPRINT ? publicationsFromSourceWithoutSessionId.length : NUMBER_OF_PUBLICATIONS_FOR_BLUEPRINT;
+  // Blue print based on a number of publications
+  const blueprintOfMunicipality = await getBlueprintOfMunicipality(getRandom(publicationsFromSourceWithoutSessionId, numberForBlueprint));
+  // Add blueprint to report
+  for (const b of blueprintOfAP) {
+    let label = b.name;
+    if (b.niveau != "") label += " (" + b.niveau + ")";
+    if (blueprintOfMunicipality.includes(b.uri)) report[label] = "X";
+    else report[label] = "";
   }
   
   data.push(report);
