@@ -42,6 +42,7 @@ function getLinkToPublications(municipalities) {
         bindingsStream.on('data', function (data) {
           // Each variable binding is an RDFJS term
           publications.push(data.get('o').value);
+          document.getElementById("publication_count").innerHTML = "" + publications.length;
         });
         bindingsStream.on('end', function() {
           resolve(publications);
@@ -307,45 +308,89 @@ function removeSessionId(url) {
   }
 }
 
+// Function to populate the dropdown
+function populateDropdown(dropdown, records) {    
+  const option = document.createElement("option");
+  option.value = "--ALL--";
+  option.text = "--ALL--";
+  dropdown.appendChild(option);
+
+  // Iterate over the records and create options
+  records.forEach((record) => {
+    const option = document.createElement("option");
+    option.value = record.municipalityLabel;
+    option.text = record.municipalityLabel;
+    dropdown.appendChild(option);
+  });
+};
+
+
 $(document).ready(async () => {
-    const link = document.getElementById('export').addEventListener('click', handleExportToExcel);
-    // 1. Get municipalities and their entry points
-    const municipalities = await getMunicipalities();
-    //console.log(municipalities);
-    
-    // Get blueprint of application profile
-    const blueprintOfAP = await getBlueprintOfApplicationProfile();
+  const link = document.getElementById('export').addEventListener('click', handleExportToExcel);
+  let interestedMunicipalityLabel = "";
   
-    // 2. Get publications for one specific municipality or for every municipality
-    if (typeof interestedMunicipality !== "undefined") {
-      if (interestedMunicipality.municipalityLabel && interestedMunicipality.entrypoint) await processMunicipality(municipalities, interestedMunicipality, blueprintOfAP);
-      else if (interestedMunicipality.municipalityLabel) {
-        const m = municipalities.find(m => m.municipalityLabel === interestedMunicipality.municipalityLabel);
-      
-        if (m) await processMunicipality(municipalities, m, blueprintOfAP); 
-      }
-      else console.log("Municipality not scheduled.");
+  const drp_municipalitiesList = document.getElementById("municipalitiesList");
+  drp_municipalitiesList.onchange = function() {
+    interestedMunicipalityLabel = this.value;
+
+    if(interestedMunicipalityLabel === "--ALL--"){
+      document.getElementById('action_text').innerHTML = "Genereer overzicht voor elke gemeente"
+    } else {
+      document.getElementById('action_text').innerHTML = "Genereer overzicht voor gemeente " + interestedMunicipalityLabel
+    }
+  };
+    
+  // 1. Get municipalities and their entry points
+  const municipalities = await getMunicipalities();
+  populateDropdown(drp_municipalitiesList, municipalities);
+  
+  // Get blueprint of application profile
+  const blueprintOfAP = await getBlueprintOfApplicationProfile();
+
+  // 2. Get publications for one specific municipality or for every municipality
+  const btn_start_processing = document.getElementById('btn_start_processing').addEventListener('click', () => start_loading(), false);
+
+  async function start_loading() {
+
+    document.getElementById("progressbar").value = 0;
+
+    if (typeof interestedMunicipalityLabel !== "undefined" && interestedMunicipalityLabel !== "--ALL--") {
+      // if (interestedMunicipality.municipalityLabel && interestedMunicipality.entrypoint) await processMunicipality(municipalities, interestedMunicipality, blueprintOfAP);
+      // if (interestedMunicipalityLabel !== "--ALL--") {
+        const m = municipalities.find(m => m.municipalityLabel === interestedMunicipalityLabel);
+        const municipalities_sliced = municipalities.filter(m => m.municipalityLabel === interestedMunicipalityLabel);
+
+        if (m) {
+          document.getElementById('processing_now').innerHTML = "Publications found for " + m.municipalityLabel + ":";
+
+          await processMunicipality(municipalities_sliced, m, blueprintOfAP);
+          
+          document.getElementById("progressbar").value += (100/municipalities_sliced.length);
+        }; 
+      // }
+      // else console.log("Municipality not scheduled.");
     } 
     else {
       let municipalities_sliced = municipalities;
-
+  
       if (typeof start_at !== "undefined") {
         municipalities_sliced = municipalities.slice(start_at-1);
       }
-
+  
       for (const m of municipalities_sliced) {
+        document.getElementById('processing_now').innerHTML = "Publications found for" + m.municipalityLabel + ": ";
+
         await processMunicipality(municipalities_sliced, m, blueprintOfAP);
+
+        document.getElementById("progressbar").value += (100/municipalities_sliced.length);
       }     
     }
-    
+      
+    handleExportToExcel(); 
+
+    document.getElementById('processing_now').innerHTML = "Done processing. Export to excel is available.";
     console.log("done");
-
-    handleExportToExcel();
-    // $("#snippet").html(JSON.stringify(template, undefined, 4));
-
-    //$("#input-voornaam").on("input", function() {
-    //  updateTemplate("voornaam", $("#input-voornaam").val());
-    //});  
+  }
 });
 
 async function processMunicipality(municipalities, m, blueprintOfAP) {
