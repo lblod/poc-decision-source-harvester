@@ -16,13 +16,13 @@ const data = [];
 //    "entrypoint": "https://kalmthout.bestuurlijkeinformatie.nl/OpenLinkedData/Index/9aa60dcb-0539-4b5d-9cfd-139c31a834c7"
 //  };
 
-function getLinkToPublications(municipalities) {
+function getLinkToPublications(municipalities, proxy) {
   return new Promise((resolve, reject) => {
     try {
       let publications = [];
       // Add entrypoint to publications when interestedMunicipality has been set
       if (typeof interestedMunicipality !== "undefined" && interestedMunicipality.entrypoint) {
-         publications = municipalities.map((m) => { return m.entrypoint });
+        publications = municipalities.map((m) => { return m.entrypoint });
       }
       // By default add entrypoint as publication too
       const sources = municipalities.map((m) => { return m.entrypoint });
@@ -201,7 +201,7 @@ function getCollectedPublications(municipalityLabel) {
   });
 }
 
-function getBlueprintOfMunicipality(publications) {
+function getBlueprintOfMunicipality(publications, proxy) {
   return new Promise((resolve, reject) => {
     try {
       const blueprint = [];
@@ -341,9 +341,15 @@ $(document).ready(async () => {
   };
     
   // 1. Get municipalities and their entry points
-  const municipalities = await getMunicipalities();
+  let municipalities = await getMunicipalities();
   populateDropdown(drp_municipalitiesList, municipalities);
-  
+  // 1b. Set all entrypoints to HTTPS
+  municipalities = municipalities.map((m) => {
+    if (m.entrypoint.indexOf('http://') != -1) {
+      m.entrypoint = m.entrypoint.replace('http://', 'https://');
+    }
+    return m;
+  });
   // 2. Get blueprint of application profile
   const blueprintOfAP = await getBlueprintOfApplicationProfile();
 
@@ -393,9 +399,14 @@ async function start_loading(municipalities, interestedMunicipalityLabel, bluepr
 }
 
 async function processMunicipality(municipalities, m, blueprintOfAP) {
+  // 
+  // There is probably a certificate error when the entrypoint exists without using a proxy
+  const certificateProblem = !urlExists(proxy + m.entrypoint) && urlExists(m.entrypoint);
+  let proxyForMunicipality = certificateProblem ? "" : proxy;
+
   const position = municipalities.indexOf(m)+1;
   console.log("Retrieving publications of municipality " + m.municipalityLabel + " (" + position + "/" + municipalities.length + "): with entry point: " + m.entrypoint);
-  const publicationsFromSource = await getLinkToPublications([m]);
+  const publicationsFromSource = await getLinkToPublications([m], proxyForMunicipality);
   const publicationsFromSourceWithoutSessionId = [];
   for (let p of publicationsFromSource) {
     const cleanPub = removeSessionId(p);
@@ -427,7 +438,7 @@ async function processMunicipality(municipalities, m, blueprintOfAP) {
   
   const numberForBlueprint = publicationsFromSourceWithoutSessionId.length < NUMBER_OF_PUBLICATIONS_FOR_BLUEPRINT ? publicationsFromSourceWithoutSessionId.length : NUMBER_OF_PUBLICATIONS_FOR_BLUEPRINT;
   // Blue print based on a number of publications
-  const blueprintOfMunicipality = await getBlueprintOfMunicipality(getRandom(publicationsFromSourceWithoutSessionId, numberForBlueprint));
+  const blueprintOfMunicipality = await getBlueprintOfMunicipality(getRandom(publicationsFromSourceWithoutSessionId, numberForBlueprint), proxyForMunicipality);
   // Add blueprint to report
   for (const b of blueprintOfAP) {
     let label = b.name;
@@ -442,6 +453,16 @@ async function processMunicipality(municipalities, m, blueprintOfAP) {
 }
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function urlExists(url) {
+  var http = new XMLHttpRequest();
+  http.open('HEAD', url, false);
+  http.send();
+  if (http.status != 404)
+      return true;
+  else
+      return false;
 }
 
 function handleExportToExcel() {
