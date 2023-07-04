@@ -344,54 +344,53 @@ $(document).ready(async () => {
   const municipalities = await getMunicipalities();
   populateDropdown(drp_municipalitiesList, municipalities);
   
-  // Get blueprint of application profile
+  // 2. Get blueprint of application profile
   const blueprintOfAP = await getBlueprintOfApplicationProfile();
 
-  // 2. Get publications for one specific municipality or for every municipality
-  const btn_start_processing = document.getElementById('btn_start_processing').addEventListener('click', () => start_loading(), false);
+  // 3. Button to get publications for one specific municipality or for every municipality
+  const btn_start_processing = document.getElementById('btn_start_processing').addEventListener('click', () => start_loading(municipalities, interestedMunicipalityLabel, blueprintOfAP), false);
+});
 
-  async function start_loading() {
+async function start_loading(municipalities, interestedMunicipalityLabel, blueprintOfAP) {
+  document.getElementById("progressbar").value = 0;
 
-    document.getElementById("progressbar").value = 0;
+  if (typeof interestedMunicipalityLabel !== "undefined" && interestedMunicipalityLabel !== "--ALL--") {
+    // if (interestedMunicipality.municipalityLabel && interestedMunicipality.entrypoint) await processMunicipality(municipalities, interestedMunicipality, blueprintOfAP);
+    // if (interestedMunicipalityLabel !== "--ALL--") {
+      const m = municipalities.find(m => m.municipalityLabel === interestedMunicipalityLabel);
+      const municipalities_sliced = municipalities.filter(m => m.municipalityLabel === interestedMunicipalityLabel);
 
-    if (typeof interestedMunicipalityLabel !== "undefined" && interestedMunicipalityLabel !== "--ALL--") {
-      // if (interestedMunicipality.municipalityLabel && interestedMunicipality.entrypoint) await processMunicipality(municipalities, interestedMunicipality, blueprintOfAP);
-      // if (interestedMunicipalityLabel !== "--ALL--") {
-        const m = municipalities.find(m => m.municipalityLabel === interestedMunicipalityLabel);
-        const municipalities_sliced = municipalities.filter(m => m.municipalityLabel === interestedMunicipalityLabel);
-
-        if (m) {
-          document.getElementById('processing_now').innerHTML = "Publications found for " + m.municipalityLabel + ":";
-
-          await processMunicipality(municipalities_sliced, m, blueprintOfAP);
-          
-          document.getElementById("progressbar").value += (100/municipalities_sliced.length);
-        }; 
-      // }
-      // else console.log("Municipality not scheduled.");
-    } 
-    else {
-      let municipalities_sliced = municipalities;
-  
-      if (typeof start_at !== "undefined") {
-        municipalities_sliced = municipalities.slice(start_at-1);
-      }
-  
-      for (const m of municipalities_sliced) {
-        document.getElementById('processing_now').innerHTML = "Publications found for" + m.municipalityLabel + ": ";
+      if (m) {
+        document.getElementById('processing_now').innerHTML = "Publications found for " + m.municipalityLabel + ":";
 
         await processMunicipality(municipalities_sliced, m, blueprintOfAP);
-
+        
         document.getElementById("progressbar").value += (100/municipalities_sliced.length);
-      }     
-    }
-      
-    handleExportToExcel(); 
+      }; 
+    // }
+    // else console.log("Municipality not scheduled.");
+  } 
+  else {
+    let municipalities_sliced = municipalities;
 
-    document.getElementById('processing_now').innerHTML = "Done processing. Export to excel is available.";
-    console.log("done");
+    if (typeof start_at !== "undefined") {
+      municipalities_sliced = municipalities.slice(start_at-1);
+    }
+
+    for (const m of municipalities_sliced) {
+      document.getElementById('processing_now').innerHTML = "Publications found for" + m.municipalityLabel + ": ";
+
+      await processMunicipality(municipalities_sliced, m, blueprintOfAP);
+
+      document.getElementById("progressbar").value += (100/municipalities_sliced.length);
+    }     
   }
-});
+    
+  handleExportToExcel(); 
+
+  document.getElementById('processing_now').innerHTML = "Done processing. Export to excel is available.";
+  console.log("done");
+}
 
 async function processMunicipality(municipalities, m, blueprintOfAP) {
   const position = municipalities.indexOf(m)+1;
