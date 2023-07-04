@@ -18,7 +18,25 @@
       <div class="layout layout--wide">
         <h1 class="h1">Overzicht websites</h1>
         <div class="introduction">
-          Download overzicht van elke gemeente<br>
+          <label for="municipalities">Selecteer gemeente: </label>
+          <select id="municipalitiesList"></select> <br>
+
+          <br>
+
+          <div id="action_text">Genereer overzicht voor elke gemeente</div> <br>
+
+          <button id="btn_start_processing">Start scan</button> <br>
+          <br>
+
+          <div id="status_div">
+            <label for="progressbar">Status: </label>
+            <progress id="progressbar" value="0" max="100"></progress> <br>
+            <div>
+              <label id="processing_now"></label><label id="publication_count"></label>
+            </div>
+            <div id="processing_message"></div> <br>
+          </div>
+          <br>
 			    <button id="export">Export to Excel</button>
 
         </div>
