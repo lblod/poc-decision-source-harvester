@@ -11,10 +11,10 @@ const data = [];
 
 // Put in comment when you do not want to harvest a specific municipality
 // You can remove the entrypoint when you want to use the default scheduled entry point
-//  const interestedMunicipality = {
-//    "municipalityLabel": "Mesen Gemeente",
-//    "entrypoint": "https://kalmthout.bestuurlijkeinformatie.nl/OpenLinkedData/Index/9aa60dcb-0539-4b5d-9cfd-139c31a834c7"
-//  };
+ const interestedMunicipality = {
+   "municipalityLabel": "Provincie Antwerpen",
+   "entrypoint": "https://www.provincieantwerpen.be/content/dam/publicaties/open-data/provincieraad/2023/2023-05-25/pr_2023-05-25.html"
+ };
 
 function getLinkToPublications(municipalities, proxy) {
   return new Promise((resolve, reject) => {
@@ -333,11 +333,11 @@ $(document).ready(async () => {
   drp_municipalitiesList.onchange = function() {
     interestedMunicipalityLabel = this.value;
 
-    if(interestedMunicipalityLabel === "--ALL--"){
-      document.getElementById('action_text').innerHTML = "Genereer overzicht voor elke gemeente"
-    } else {
-      document.getElementById('action_text').innerHTML = "Genereer overzicht voor gemeente " + interestedMunicipalityLabel
-    }
+    // if(interestedMunicipalityLabel === "--ALL--"){
+    //   document.getElementById('action_text').innerHTML = "Genereer overzicht voor elke gemeente"
+    // } else {
+    //   document.getElementById('action_text').innerHTML = "Genereer overzicht voor gemeente " + interestedMunicipalityLabel
+    // }
   };
     
   // 1. Get municipalities and their entry points
@@ -359,10 +359,21 @@ $(document).ready(async () => {
 
 async function start_loading(municipalities, interestedMunicipalityLabel, blueprintOfAP) {
   document.getElementById("progressbar").value = 0;
-
-  if (typeof interestedMunicipalityLabel !== "undefined" && interestedMunicipalityLabel !== "--ALL--") {
-    // if (interestedMunicipality.municipalityLabel && interestedMunicipality.entrypoint) await processMunicipality(municipalities, interestedMunicipality, blueprintOfAP);
-    // if (interestedMunicipalityLabel !== "--ALL--") {
+  const specificPublication = document.getElementById("specificPublication").value;
+  
+  // Specific publication
+  console.log(specificPublication)
+  if (specificPublication != "") {
+    const m = {
+      "municipalityLabel": "test",
+      "entrypoint": specificPublication
+    }
+    document.getElementById('processing_now').innerHTML = "Fetching this specific publication...";
+    await processMunicipality([m], m, blueprintOfAP);
+    document.getElementById("progressbar").value += (100/[m].length);
+  }
+  // Specific municipality
+  else if (typeof interestedMunicipalityLabel !== "undefined" && interestedMunicipalityLabel !== "--ALL--") {
       const m = municipalities.find(m => m.municipalityLabel === interestedMunicipalityLabel);
       const municipalities_sliced = municipalities.filter(m => m.municipalityLabel === interestedMunicipalityLabel);
 
@@ -373,9 +384,8 @@ async function start_loading(municipalities, interestedMunicipalityLabel, bluepr
         
         document.getElementById("progressbar").value += (100/municipalities_sliced.length);
       }; 
-    // }
-    // else console.log("Municipality not scheduled.");
   } 
+  // Fetch all municipalities
   else {
     let municipalities_sliced = municipalities;
 
@@ -399,7 +409,6 @@ async function start_loading(municipalities, interestedMunicipalityLabel, bluepr
 }
 
 async function processMunicipality(municipalities, m, blueprintOfAP) {
-  // 
   // There is probably a certificate error when the entrypoint exists without using a proxy
   const certificateProblem = !urlExists(proxy + m.entrypoint) && urlExists(m.entrypoint);
   let proxyForMunicipality = certificateProblem ? "" : proxy;
