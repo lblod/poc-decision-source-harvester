@@ -11,18 +11,18 @@ const data = [];
 
 // Put in comment when you do not want to harvest a specific municipality
 // You can remove the entrypoint when you want to use the default scheduled entry point
-//  const interestedMunicipality = {
-//    "municipalityLabel": "Mesen Gemeente",
-//    "entrypoint": "https://kalmthout.bestuurlijkeinformatie.nl/OpenLinkedData/Index/9aa60dcb-0539-4b5d-9cfd-139c31a834c7"
-//  };
+ const interestedMunicipality = {
+   "municipalityLabel": "Provincie Antwerpen",
+   "entrypoint": "https://www.provincieantwerpen.be/content/dam/publicaties/open-data/provincieraad/2023/2023-05-25/pr_2023-05-25.html"
+ };
 
-function getLinkToPublications(municipalities) {
+function getLinkToPublications(municipalities, proxy) {
   return new Promise((resolve, reject) => {
     try {
       let publications = [];
       // Add entrypoint to publications when interestedMunicipality has been set
       if (typeof interestedMunicipality !== "undefined" && interestedMunicipality.entrypoint) {
-         publications = municipalities.map((m) => { return m.entrypoint });
+        publications = municipalities.map((m) => { return m.entrypoint });
       }
       // By default add entrypoint as publication too
       const sources = municipalities.map((m) => { return m.entrypoint });
@@ -201,7 +201,7 @@ function getCollectedPublications(municipalityLabel) {
   });
 }
 
-function getBlueprintOfMunicipality(publications) {
+function getBlueprintOfMunicipality(publications, proxy) {
   return new Promise((resolve, reject) => {
     try {
       const blueprint = [];
@@ -333,70 +333,89 @@ $(document).ready(async () => {
   drp_municipalitiesList.onchange = function() {
     interestedMunicipalityLabel = this.value;
 
-    if(interestedMunicipalityLabel === "--ALL--"){
-      document.getElementById('action_text').innerHTML = "Genereer overzicht voor elke gemeente"
-    } else {
-      document.getElementById('action_text').innerHTML = "Genereer overzicht voor gemeente " + interestedMunicipalityLabel
-    }
+    // if(interestedMunicipalityLabel === "--ALL--"){
+    //   document.getElementById('action_text').innerHTML = "Genereer overzicht voor elke gemeente"
+    // } else {
+    //   document.getElementById('action_text').innerHTML = "Genereer overzicht voor gemeente " + interestedMunicipalityLabel
+    // }
   };
     
   // 1. Get municipalities and their entry points
-  const municipalities = await getMunicipalities();
+  let municipalities = await getMunicipalities();
   populateDropdown(drp_municipalitiesList, municipalities);
-  
-  // Get blueprint of application profile
+  // 1b. Set all entrypoints to HTTPS
+  municipalities = municipalities.map((m) => {
+    if (m.entrypoint.indexOf('http://') != -1) {
+      m.entrypoint = m.entrypoint.replace('http://', 'https://');
+    }
+    return m;
+  });
+  // 2. Get blueprint of application profile
   const blueprintOfAP = await getBlueprintOfApplicationProfile();
 
-  // 2. Get publications for one specific municipality or for every municipality
-  const btn_start_processing = document.getElementById('btn_start_processing').addEventListener('click', () => start_loading(), false);
-
-  async function start_loading() {
-
-    document.getElementById("progressbar").value = 0;
-
-    if (typeof interestedMunicipalityLabel !== "undefined" && interestedMunicipalityLabel !== "--ALL--") {
-      // if (interestedMunicipality.municipalityLabel && interestedMunicipality.entrypoint) await processMunicipality(municipalities, interestedMunicipality, blueprintOfAP);
-      // if (interestedMunicipalityLabel !== "--ALL--") {
-        const m = municipalities.find(m => m.municipalityLabel === interestedMunicipalityLabel);
-        const municipalities_sliced = municipalities.filter(m => m.municipalityLabel === interestedMunicipalityLabel);
-
-        if (m) {
-          document.getElementById('processing_now').innerHTML = "Publications found for " + m.municipalityLabel + ":";
-
-          await processMunicipality(municipalities_sliced, m, blueprintOfAP);
-          
-          document.getElementById("progressbar").value += (100/municipalities_sliced.length);
-        }; 
-      // }
-      // else console.log("Municipality not scheduled.");
-    } 
-    else {
-      let municipalities_sliced = municipalities;
-  
-      if (typeof start_at !== "undefined") {
-        municipalities_sliced = municipalities.slice(start_at-1);
-      }
-  
-      for (const m of municipalities_sliced) {
-        document.getElementById('processing_now').innerHTML = "Publications found for" + m.municipalityLabel + ": ";
-
-        await processMunicipality(municipalities_sliced, m, blueprintOfAP);
-
-        document.getElementById("progressbar").value += (100/municipalities_sliced.length);
-      }     
-    }
-      
-    handleExportToExcel(); 
-
-    document.getElementById('processing_now').innerHTML = "Done processing. Export to excel is available.";
-    console.log("done");
-  }
+  // 3. Button to get publications for one specific municipality or for every municipality
+  const btn_start_processing = document.getElementById('btn_start_processing').addEventListener('click', () => start_loading(municipalities, interestedMunicipalityLabel, blueprintOfAP), false);
 });
 
+async function start_loading(municipalities, interestedMunicipalityLabel, blueprintOfAP) {
+  document.getElementById("progressbar").value = 0;
+  const specificPublication = document.getElementById("specificPublication").value;
+  
+  // Specific publication
+  console.log(specificPublication)
+  if (specificPublication != "") {
+    const m = {
+      "municipalityLabel": "test",
+      "entrypoint": specificPublication
+    }
+    document.getElementById('processing_now').innerHTML = "Fetching this specific publication...";
+    await processMunicipality([m], m, blueprintOfAP);
+    document.getElementById("progressbar").value += (100/[m].length);
+  }
+  // Specific municipality
+  else if (typeof interestedMunicipalityLabel !== "undefined" && interestedMunicipalityLabel !== "--ALL--") {
+      const m = municipalities.find(m => m.municipalityLabel === interestedMunicipalityLabel);
+      const municipalities_sliced = municipalities.filter(m => m.municipalityLabel === interestedMunicipalityLabel);
+
+      if (m) {
+        document.getElementById('processing_now').innerHTML = "Publications found for " + m.municipalityLabel + ":";
+
+        await processMunicipality(municipalities_sliced, m, blueprintOfAP);
+        
+        document.getElementById("progressbar").value += (100/municipalities_sliced.length);
+      }; 
+  } 
+  // Fetch all municipalities
+  else {
+    let municipalities_sliced = municipalities;
+
+    if (typeof start_at !== "undefined") {
+      municipalities_sliced = municipalities.slice(start_at-1);
+    }
+
+    for (const m of municipalities_sliced) {
+      document.getElementById('processing_now').innerHTML = "Publications found for" + m.municipalityLabel + ": ";
+
+      await processMunicipality(municipalities_sliced, m, blueprintOfAP);
+
+      document.getElementById("progressbar").value += (100/municipalities_sliced.length);
+    }     
+  }
+    
+  handleExportToExcel(); 
+
+  document.getElementById('processing_now').innerHTML = "Done processing. Export to excel is available.";
+  console.log("done");
+}
+
 async function processMunicipality(municipalities, m, blueprintOfAP) {
+  // There is probably a certificate error when the entrypoint exists without using a proxy
+  const certificateProblem = !urlExists(proxy + m.entrypoint) && urlExists(m.entrypoint);
+  let proxyForMunicipality = certificateProblem ? "" : proxy;
+
   const position = municipalities.indexOf(m)+1;
   console.log("Retrieving publications of municipality " + m.municipalityLabel + " (" + position + "/" + municipalities.length + "): with entry point: " + m.entrypoint);
-  const publicationsFromSource = await getLinkToPublications([m]);
+  const publicationsFromSource = await getLinkToPublications([m], proxyForMunicipality);
   const publicationsFromSourceWithoutSessionId = [];
   for (let p of publicationsFromSource) {
     const cleanPub = removeSessionId(p);
@@ -428,7 +447,7 @@ async function processMunicipality(municipalities, m, blueprintOfAP) {
   
   const numberForBlueprint = publicationsFromSourceWithoutSessionId.length < NUMBER_OF_PUBLICATIONS_FOR_BLUEPRINT ? publicationsFromSourceWithoutSessionId.length : NUMBER_OF_PUBLICATIONS_FOR_BLUEPRINT;
   // Blue print based on a number of publications
-  const blueprintOfMunicipality = await getBlueprintOfMunicipality(getRandom(publicationsFromSourceWithoutSessionId, numberForBlueprint));
+  const blueprintOfMunicipality = await getBlueprintOfMunicipality(getRandom(publicationsFromSourceWithoutSessionId, numberForBlueprint), proxyForMunicipality);
   // Add blueprint to report
   for (const b of blueprintOfAP) {
     let label = b.name;
@@ -443,6 +462,16 @@ async function processMunicipality(municipalities, m, blueprintOfAP) {
 }
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function urlExists(url) {
+  var http = new XMLHttpRequest();
+  http.open('HEAD', url, false);
+  http.send();
+  if (http.status != 404)
+      return true;
+  else
+      return false;
 }
 
 function handleExportToExcel() {
