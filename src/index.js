@@ -366,11 +366,6 @@ function fetchMandatenbank(){
 };
 
 
-function lookupMandataris(mandataris){
-  return mandatendatabankList.includes(mandataris);
-};
-
-
 function validateLevel2(publications) {
   return new Promise((resolve, reject) => {
     try {
@@ -451,6 +446,7 @@ function validateLevel2(publications) {
 }
 
 
+
 $(document).ready(async () => {
   const link = document.getElementById('export').addEventListener('click', handleExportToExcel);
   let interestedMunicipalityLabel = "";
@@ -485,6 +481,8 @@ $(document).ready(async () => {
   // 3. Button to get publications for one specific municipality or for every municipality
   const btn_start_processing = document.getElementById('btn_start_processing').addEventListener('click', () => start_loading(municipalities, interestedMunicipalityLabel, blueprintOfAP), false);
 });
+
+
 
 async function start_loading(municipalities, interestedMunicipalityLabel, blueprintOfAP) {
   document.getElementById("progressbar").value = 0;
@@ -595,6 +593,7 @@ async function processMunicipality(municipalities, m, blueprintOfAP) {
   // 3. Check if publication is already harvested
   //await sleep(10000);
 }
+
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
