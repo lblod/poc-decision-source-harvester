@@ -33,6 +33,6 @@ Go to `http://127.0.0.1:8081/dist/` and check out the console where you should s
 
 ## Hot-reloading
 Hot-reloading with webpack-dev-server is implemented. You can run using the following:
- ```
- npm run start:dev
- ```
+```
+npm run start:dev
+```
