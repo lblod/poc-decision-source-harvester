@@ -426,13 +426,12 @@ function validateLevel2(publications) {
         bindingsStream.on('end', function() {
           let matchedMandataris = mandatendatabankList.filter(element => mandatarissenInPublications.includes(element));
           
-          numberReusedMandatarissen = matchedMandataris.length;
-          numberMandatartissenInPub = mandatarissenInPublications.length;
+          let numberReusedMandatarissen = matchedMandataris.length;
+          let numberMandatartissenInPub = mandatarissenInPublications.length;
 
+          let percentageReuse = 0
           if(numberMandatartissenInPub > 0){
             percentageReuse = numberReusedMandatarissen / numberMandatartissenInPub * 100;
-          } else {
-            percentageReuse = 0
           }
 
           console.log("Aantal gevonden", matchedMandataris.length);
