@@ -6,7 +6,9 @@ const proxy = "https://proxy.linkeddatafragments.org/";
 //const proxy = "http://localhost:8080/";
 
 const NUMBER_OF_PUBLICATIONS_FOR_BLUEPRINT = 30;
+const NUMBER_OF_PUBLICATIONS_FOR_MANDATARIS = 100;
 const data = [];
+var mandatendatabankList = [];
 // const start_at =193;
 
 // Put in comment when you do not want to harvest a specific municipality
@@ -325,9 +327,137 @@ function populateDropdown(dropdown, records) {
 };
 
 
+function fetchMandatenbank(){
+  // query mandatenbank to retrieve all the mandatarissen. Should only run once. 
+  return new Promise((resolve, reject) => {
+    try {
+      const allMandatarissen = [];
+      new Comunica.QueryEngine().queryBindings(`
+      PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+
+      SELECT DISTINCT ?a {
+        ?a a mandaat:Mandataris ;
+          mandaat:isBestuurlijkeAliasVan ?p .
+      }
+      `, {
+        sources: ['https://qa.centrale-vindplaats.lblod.info/sparql'],
+        lenient: true,
+        httpProxyHandler: new ProxyHandlerStatic(proxy),
+        httpRetryCount: 5,
+        httpRetryDelay: 2000,
+        httpRetryOnServerError: true
+      }).then(function (bindingsStream) {
+        bindingsStream.on('data', function (data) {
+           // Each variable binding is an RDFJS term
+           allMandatarissen.push(data.get('a').value);
+        });
+        bindingsStream.on('end', function() {
+          resolve(allMandatarissen);
+        });
+        bindingsStream.on('error', function() {
+          console.log(error);
+        });
+      });
+    } catch (e) {
+      console.log("jup")
+      reject(e);
+    }
+  });
+};
+
+
+function lookupMandataris(mandataris){
+  return mandatendatabankList.includes(mandataris);
+};
+
+
+function validateLevel2(publications) {
+  return new Promise((resolve, reject) => {
+    try {
+      const mandatarissenInPublications = [];
+      new Comunica.QueryEngine().queryBindings(`
+      PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+
+      SELECT DISTINCT ?mandataris {
+        {
+        ?a besluit:heeftVoorzitter ?mandataris .
+        }
+        UNION 
+        {
+         ?b besluit:heeftSecretaris ?mandataris . 
+        } 
+        UNION 
+        {
+         ?c besluit:heeftAanwezigeBijStart ?mandataris . 
+        } 
+        UNION 
+        {
+         ?d besluit:heeftAanwezige ?mandataris . 
+        }
+        UNION 
+        {
+         ?e besluit:heeftVoorstander ?mandataris . 
+        } 
+        UNION 
+        {
+         ?f besluit:heeftTegenstander ?mandataris . 
+        }
+        UNION 
+        {
+         ?g besluit:heeftOnthouder ?mandataris . 
+        }
+        UNION 
+        {
+         ?h besluit:heeftStemmer ?mandataris . 
+        }
+      }
+          `, {
+        sources: publications,
+        lenient: true,
+        httpProxyHandler: new ProxyHandlerStatic(proxy),
+        httpRetryCount: 5,
+        httpRetryDelay: 2000,
+        httpRetryOnServerError: true
+      }).then(function (bindingsStream) {
+        bindingsStream.on('data', function (data) {
+           // Build list of mandatarissen in publications
+           mandatarissenInPublications.push(data.get('mandataris').value);
+        });
+        bindingsStream.on('end', function() {
+          let matchedMandataris = mandatendatabankList.filter(element => mandatarissenInPublications.includes(element));
+          
+          numberReusedMandatarissen = matchedMandataris.length;
+          numberMandatartissenInPub = mandatarissenInPublications.length;
+
+          if(numberMandatartissenInPub > 0){
+            percentageReuse = numberReusedMandatarissen / numberMandatartissenInPub * 100;
+          } else {
+            percentageReuse = 0
+          }
+
+          console.log("Aantal gevonden", matchedMandataris.length);
+          console.log("Aantal inSource", mandatarissenInPublications.length);
+
+          resolve(percentageReuse);
+        });
+        bindingsStream.on('error', function() {
+          console.log(error);
+        });
+      });
+    } catch (e) {
+      console.log("jup")
+      reject(e);
+    }
+  });
+}
+
+
 $(document).ready(async () => {
   const link = document.getElementById('export').addEventListener('click', handleExportToExcel);
   let interestedMunicipalityLabel = "";
+
+  mandatendatabankList = await fetchMandatenbank();
+  console.log("MasterList count: ", mandatendatabankList.length);
   
   const drp_municipalitiesList = document.getElementById("municipalitiesList");
   drp_municipalitiesList.onchange = function() {
@@ -448,6 +578,12 @@ async function processMunicipality(municipalities, m, blueprintOfAP) {
   const numberForBlueprint = publicationsFromSourceWithoutSessionId.length < NUMBER_OF_PUBLICATIONS_FOR_BLUEPRINT ? publicationsFromSourceWithoutSessionId.length : NUMBER_OF_PUBLICATIONS_FOR_BLUEPRINT;
   // Blue print based on a number of publications
   const blueprintOfMunicipality = await getBlueprintOfMunicipality(getRandom(publicationsFromSourceWithoutSessionId, numberForBlueprint), proxyForMunicipality);
+  
+  const numberForMandaten = publicationsFromSourceWithoutSessionId.length < NUMBER_OF_PUBLICATIONS_FOR_MANDATARIS ? publicationsFromSourceWithoutSessionId.length : NUMBER_OF_PUBLICATIONS_FOR_MANDATARIS;
+  const level2 = await validateLevel2(getRandom(publicationsFromSourceWithoutSessionId, numberForMandaten));
+  console.log("Result level 2");
+  console.log(level2);
+  
   // Add blueprint to report
   for (const b of blueprintOfAP) {
     let label = b.name;
