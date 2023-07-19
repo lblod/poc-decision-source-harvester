@@ -366,7 +366,7 @@ function fetchMandatenbank(){
 };
 
 
-function validateLevel2(publications) {
+function validateLevel2(publications, proxy) {
   return new Promise((resolve, reject) => {
     try {
       const mandatarissenInPublications = [];
@@ -457,12 +457,6 @@ $(document).ready(async () => {
   const drp_municipalitiesList = document.getElementById("municipalitiesList");
   drp_municipalitiesList.onchange = function() {
     interestedMunicipalityLabel = this.value;
-
-    // if(interestedMunicipalityLabel === "--ALL--"){
-    //   document.getElementById('action_text').innerHTML = "Genereer overzicht voor elke gemeente"
-    // } else {
-    //   document.getElementById('action_text').innerHTML = "Genereer overzicht voor gemeente " + interestedMunicipalityLabel
-    // }
   };
     
   // 1. Get municipalities and their entry points
@@ -576,11 +570,6 @@ async function processMunicipality(municipalities, m, blueprintOfAP) {
   // Blue print based on a number of publications
   const blueprintOfMunicipality = await getBlueprintOfMunicipality(getRandom(publicationsFromSourceWithoutSessionId, numberForBlueprint), proxyForMunicipality);
   
-  const numberForMandaten = publicationsFromSourceWithoutSessionId.length < NUMBER_OF_PUBLICATIONS_FOR_MANDATARIS ? publicationsFromSourceWithoutSessionId.length : NUMBER_OF_PUBLICATIONS_FOR_MANDATARIS;
-  const level2 = await validateLevel2(getRandom(publicationsFromSourceWithoutSessionId, numberForMandaten));
-  console.log("Result level 2");
-  console.log(level2);
-  
   // Add blueprint to report
   for (const b of blueprintOfAP) {
     let label = b.name;
@@ -588,6 +577,15 @@ async function processMunicipality(municipalities, m, blueprintOfAP) {
     if (blueprintOfMunicipality.includes(b.uri)) report[label] = "X";
     else report[label] = "";
   }
+
+  // Check level-2 score. Re-use of mandataris url from mandatadatabank.
+  const numberForMandaten = publicationsFromSourceWithoutSessionId.length < NUMBER_OF_PUBLICATIONS_FOR_MANDATARIS ? publicationsFromSourceWithoutSessionId.length : NUMBER_OF_PUBLICATIONS_FOR_MANDATARIS;
+  const level2 = await validateLevel2(getRandom(publicationsFromSourceWithoutSessionId, numberForMandaten), proxyForMunicipality);
+  console.log("Result level 2");
+  console.log(level2);
+
+  // Add the score to the report
+  report["re-use mandatarissen %"] = level2
   
   data.push(report);
   // 3. Check if publication is already harvested
