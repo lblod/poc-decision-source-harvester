@@ -12,6 +12,12 @@
   },
   "dependencies": {
     "@comunica/actor-http-proxy": "^2.7.0",
-    "zipcelx": "^1.6.2"
+    "zipcelx": "^1.6.2",
+    "@comunica/query-sparql": "^2.7.1",
+    "@comunica/query-sparql-link-traversal": "^0.2.0",
+    "@comunica/query-sparql-file": "2.7.1",
+    "json2xls": "^0.1.2",
+    "rdfstore": "0.9.17",
+    "rdf-js": "4.0.2"
   }
 }
