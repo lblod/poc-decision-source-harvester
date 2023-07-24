@@ -22,6 +22,15 @@ npm run build
 
 Now, you need to rebuild the app each time you want to test a specific `interestedMunicipality`.
 
+# Proxy
+
+To increase the performance, we created an HTTP proxy that sets the Cache-Control header to immutable for every publication. Run following commands in a separate terminal to setup the proxy on localhost:8080:
+
+```
+cd proxy
+npm install
+node server.js
+```
 
 # Run
 
