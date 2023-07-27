@@ -5,6 +5,8 @@ import zipcelx from "zipcelx";
 //const proxy = "https://proxy.linkeddatafragments.org/";
 const proxy = "http://localhost:8080/";
 
+const engine = new Comunica.QueryEngine();
+
 const NUMBER_OF_PUBLICATIONS_FOR_BLUEPRINT = 100;
 const NUMBER_OF_PUBLICATIONS_FOR_MANDATARIS = 100;
 const data = [];
@@ -29,17 +31,35 @@ function getLinkToPublications(municipalities, proxy) {
       // By default add entrypoint as publication too
       const sources = municipalities.map((m) => { return m.entrypoint });
       new ComunicaLinkTraversal.QueryEngine().queryBindings(`
-          select DISTINCT ?o
-        where {
+      PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+      select DISTINCT ?o
+      where {
+        {
           ?s <http://lblod.data.gift/vocabularies/besluit/linkToPublication> ?o .
-          }
+        }
+        UNION {
+          ?s besluit:heeftAgenda ?o .
+        }
+        UNION {
+          ?s besluit:heeftBesluitenlijst ?o .
+        }
+        UNION {
+          ?s besluit:heeftAgenda ?o .
+        }
+        UNION {
+          ?s besluit:heeftUittreksel ?o .
+        }
+        UNION {
+          ?s besluit:heeftNotulen ?o .
+        }
+      }
           `, {
         sources: sources,
         lenient: true,
         httpProxyHandler: new ProxyHandlerStatic(proxy),
-        httpRetryCount: 5,
+        httpRetryCount: 1,
         httpRetryDelay: 2000,
-        httpRetryOnServerError: true
+        httpRetryOnServerError: false
       }).then(function (bindingsStream) {
         bindingsStream.on('data', function (data) {
           // Each variable binding is an RDFJS term
@@ -64,7 +84,7 @@ function getMunicipalities() {
   return new Promise((resolve, reject) => {
     try {
       const municipalities = [];
-      new Comunica.QueryEngine().queryBindings(`
+      engine.queryBindings(`
           PREFIX nie: <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 select DISTINCT ?municipalityLabel ?url
@@ -82,7 +102,7 @@ where {
 }
           `, {
         sources: ['https://qa.harvesting-self-service.lblod.info/sparql'],
-        httpRetryCount: 5,
+        httpRetryCount: 1,
         httpRetryDelay: 2000,
         httpRetryOnServerError: true
       }).then(function (bindingsStream) {
@@ -109,7 +129,7 @@ where {
 function isPublicationRetrieved(linkToPublication, municipalityLabel) {
   return new Promise((resolve, reject) => {
     try {
-      new Comunica.QueryEngine().queryBindings(`
+      engine.queryBindings(`
         PREFIX nie: <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#>
           PREFIX dcterms: <http://purl.org/dc/terms/>
           select *
@@ -159,7 +179,7 @@ function getCollectedPublications(municipalityLabel) {
    return new Promise((resolve, reject) => {
     try {
       const collectedPublications = [];
-      new Comunica.QueryEngine().queryBindings(`
+      engine.queryBindings(`
         PREFIX nie: <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#>
           PREFIX dcterms: <http://purl.org/dc/terms/>
           select DISTINCT ?cleanUrl
@@ -204,38 +224,42 @@ function getCollectedPublications(municipalityLabel) {
 }
 
 function getBlueprintOfMunicipality(publications, proxy) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
-      const blueprint = [];
-      new Comunica.QueryEngine().queryBindings(`
-          select DISTINCT ?classOrProperty
-where {
-  {
-  ?s a ?classOrProperty .
-  }
-  UNION {
-  	?s ?classOrProperty ?o .
-  }
-}
-          `, {
-        sources: publications,
-        lenient: true,
-        httpProxyHandler: new ProxyHandlerStatic(proxy),
-        httpRetryCount: 5,
-        httpRetryDelay: 2000,
-        httpRetryOnServerError: true
-      }).then(function (bindingsStream) {
-        bindingsStream.on('data', function (data) {
-           // Each variable binding is an RDFJS term
-           blueprint.push(data.get('classOrProperty').value);
+      const checkedBindings = [];
+      const blueprint = {};
+      for (let p of publications) {
+        console.log("check publication for blueprint of municipality");
+        const bindingsStream = await engine.queryBindings(`
+        select DISTINCT *
+        where {
+          {
+          ?classInstance a ?classOrProperty .
+          }
+          UNION {
+            ?classInstance ?classOrProperty ?value .
+          }
+        }
+            `, {
+          sources: [p],
+          lenient: true,
+          httpProxyHandler: new ProxyHandlerStatic(proxy),
+          httpRetryCount: 2,
+          httpRetryDelay: 2000,
+          httpRetryOnServerError: false
         });
-        bindingsStream.on('end', function() {
-          resolve(blueprint);
-        });
-        bindingsStream.on('error', function() {
-          console.log(error);
-        });
-      });
+        
+        let bindings = await bindingsStream.toArray();
+        bindings = bindings.filter((b) => !checkedBindings.includes(b));
+        for (let data of bindings) {
+          const classOrProperty = data.get('classOrProperty').value;
+          // Save count per classOrProperty
+          if(!blueprint[classOrProperty]) blueprint[classOrProperty] = 1;
+          else blueprint[classOrProperty]++;
+          checkedBindings.push(data);
+        }
+      }
+      resolve(blueprint);
     } catch (e) {
       console.log("jup")
       reject(e);
@@ -248,7 +272,7 @@ function getBlueprintOfApplicationProfile() {
   return new Promise((resolve, reject) => {
     try {
       const blueprint = [];
-      new Comunica.QueryEngine().queryBindings(`
+      engine.queryBindings(`
           PREFIX sh: <http://www.w3.org/ns/shacl#>
 PREFIX lblodBesluit: <http://lblod.data.gift/vocabularies/besluit/>
 SELECT DISTINCT ?uri ?name ?niveau
@@ -332,7 +356,7 @@ function fetchMandatenbank(){
   return new Promise((resolve, reject) => {
     try {
       const allMandatarissen = [];
-      new Comunica.QueryEngine().queryBindings(`
+      engine.queryBindings(`
       PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
 
       SELECT DISTINCT ?a {
@@ -367,84 +391,84 @@ function fetchMandatenbank(){
 
 
 function validateLevel2(publications, proxy) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
       console.log("start validate level 2");
       const mandatarissenInPublications = [];
-      new Comunica.QueryEngine().queryBindings(`
-      PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+      for (let p of publications) {
+        console.log("check publication for level 2")
+        const bindingsStream = await engine.queryBindings(`
+        PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 
-      SELECT DISTINCT ?mandataris {
-        {
-        ?a besluit:heeftVoorzitter ?mandataris .
+        SELECT DISTINCT ?mandataris {
+          {
+          ?a besluit:heeftVoorzitter ?mandataris .
+          }
+          UNION 
+          {
+          ?b besluit:heeftSecretaris ?mandataris . 
+          } 
+          UNION 
+          {
+          ?c besluit:heeftAanwezigeBijStart ?mandataris . 
+          } 
+          UNION 
+          {
+          ?d besluit:heeftAanwezige ?mandataris . 
+          }
+          UNION 
+          {
+          ?e besluit:heeftVoorstander ?mandataris . 
+          } 
+          UNION 
+          {
+          ?f besluit:heeftTegenstander ?mandataris . 
+          }
+          UNION 
+          {
+          ?g besluit:heeftOnthouder ?mandataris . 
+          }
+          UNION 
+          {
+          ?h besluit:heeftStemmer ?mandataris . 
+          }
         }
-        UNION 
-        {
-         ?b besluit:heeftSecretaris ?mandataris . 
-        } 
-        UNION 
-        {
-         ?c besluit:heeftAanwezigeBijStart ?mandataris . 
-        } 
-        UNION 
-        {
-         ?d besluit:heeftAanwezige ?mandataris . 
-        }
-        UNION 
-        {
-         ?e besluit:heeftVoorstander ?mandataris . 
-        } 
-        UNION 
-        {
-         ?f besluit:heeftTegenstander ?mandataris . 
-        }
-        UNION 
-        {
-         ?g besluit:heeftOnthouder ?mandataris . 
-        }
-        UNION 
-        {
-         ?h besluit:heeftStemmer ?mandataris . 
+            `, {
+          sources: [p],
+          lenient: true,
+          httpProxyHandler: new ProxyHandlerStatic(proxy),
+          httpRetryCount: 2,
+          httpRetryDelay: 5000,
+          httpRetryOnServerError: false
+        });
+        const bindings = await bindingsStream.toArray();
+        for (let data of bindings) {
+          // Build list of mandatarissen in publications
+          const mandataris = data.get('mandataris').value;
+          if (!mandatarissenInPublications.includes(mandataris)) mandatarissenInPublications.push(mandataris);
         }
       }
-          `, {
-        sources: publications,
-        lenient: true,
-        httpProxyHandler: new ProxyHandlerStatic(proxy),
-        httpRetryCount: 5,
-        httpRetryDelay: 5000,
-        httpRetryOnServerError: false
-      }).then(function (bindingsStream) {
-        bindingsStream.on('data', function (data) {
-           // Build list of mandatarissen in publications
-           mandatarissenInPublications.push(data.get('mandataris').value);
-        });
-        bindingsStream.on('end', function() {
-          const matchedMandataris = mandatendatabankList.filter(element => mandatarissenInPublications.includes(element));
-          console.log("MatchedMandatarissen: " + matchedMandataris);
-          const notMatchedMandataris = mandatarissenInPublications.filter(element => !mandatendatabankList.includes(element));
-          console.log("Not matched: " + notMatchedMandataris);
+      
+      const matchedMandataris = mandatendatabankList.filter(element => mandatarissenInPublications.includes(element));
+      console.log("MatchedMandatarissen: " + matchedMandataris);
+      const notMatchedMandataris = mandatarissenInPublications.filter(element => !mandatendatabankList.includes(element));
+      console.log("Not matched: " + notMatchedMandataris);
 
-          const numberReusedMandatarissen = matchedMandataris.length;
-          const numberMandatarissenInPub = mandatarissenInPublications.length;
+      const numberReusedMandatarissen = matchedMandataris.length;
+      const numberMandatarissenInPub = mandatarissenInPublications.length;
 
-          let percentageReuse = 0
-          if(numberMandatarissenInPub > 0){
-            percentageReuse = numberReusedMandatarissen / numberMandatarissenInPub * 100;
-          }
+      let percentageReuse = 0
+      if(numberMandatarissenInPub > 0){
+        percentageReuse = numberReusedMandatarissen / numberMandatarissenInPub * 100;
+      }
 
-          console.log("Aantal gematchet met mandatendatabank", matchedMandataris.length);
-          console.log("Aantal gevonden in publicaties", mandatarissenInPublications.length);
+      console.log("Aantal gematchet met mandatendatabank", matchedMandataris.length);
+      console.log("Aantal gevonden in publicaties", mandatarissenInPublications.length);
 
-          resolve({
-            "percentage": percentageReuse,
-            "mandatarissenFoundInPublications": mandatarissenInPublications,
-            "mandatarissenFoundInPublicationsThatAreNotLinked": notMatchedMandataris
-          });
-        });
-        bindingsStream.on('error', function() {
-          console.log(error);
-        });
+      resolve({
+        "percentage": percentageReuse,
+        "mandatarissenFoundInPublications": mandatarissenInPublications,
+        "mandatarissenFoundInPublicationsThatAreNotLinked": notMatchedMandataris
       });
     } catch (e) {
       console.log("jup")
@@ -453,11 +477,72 @@ function validateLevel2(publications, proxy) {
   });
 }
 
+function getRelevantPublicationsWithinTimeInterval(publications, proxy, start, eind) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      console.log("Filtering on relevant publications");
 
+      const relevantPublications = [];
+      for (let p of publications) {
+        console.log("Checking for publication whether in time interval");
+        const bindingsStream = await engine.queryBindings(`
+        PREFIX prov: <http://www.w3.org/ns/prov#>
+  PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+  PREFIX ns1: <http://www.w3.org/1999/xhtml/vocab#>
+  PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+  PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+  PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+  PREFIX terms: <http://purl.org/dc/terms/>
+  PREFIX title: <http://purl.org/dc/terms/title>
+  PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+  PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+  PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+  SELECT DISTINCT ?bestuursclassificatielabel
+  WHERE {
+      # Get bestuursclassificatie (gemeenteraad, college...)
+      OPTIONAL {
+        ?a1 besluit:isGehoudenDoor ?bestuursorgaanInTijd .
+        ?bestuursorgaanInTijd skos:prefLabel ?bestuursclassificatie.
+      }
+      BIND(if(bound(?bestuursclassificatie) = "true"^^xsd:boolean, lcase(str(?bestuursclassificatie)), "onbekend") AS ?bestuursclassificatielabel)
+    
+      # Get start of Zitting
+      ?a2 prov:startedAtTime ?startZitting .
+
+    BIND (if(?startZitting > "${start}"^^xsd:dateTime && ?startZitting < "${eind}"^^xsd:dateTime, "true"^^xsd:boolean, "false"^^xsd:boolean) AS ?withinTimeInterval)
+
+    FILTER (?withinTimeInterval = "true"^^xsd:boolean)
+    }
+  `, {
+          lenient: true,
+          httpProxyHandler: new ProxyHandlerStatic(proxy),
+          sources: [ p ],
+          httpRetryCount: 2,
+          httpRetryDelay: 2000,
+          httpRetryOnServerError: false
+        });
+        const bindings = await bindingsStream.toArray();
+        for (let data of bindings) {
+          //const v = {};
+          const bestuursclassificatielabel = data.get('bestuursclassificatielabel').value;
+          //v["bestuursclassificatielabel"] = bestuursclassificatielabel;
+          //v["startZitting"] = data.get('startZitting').value;
+          //v["linkToPublication"] = p;
+          if (!relevantPublications[bestuursclassificatielabel]) relevantPublications[bestuursclassificatielabel] = [];
+          relevantPublications[bestuursclassificatielabel].push(p);
+        }
+      }
+      resolve(relevantPublications);
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
 
 $(document).ready(async () => {
   const link = document.getElementById('export').addEventListener('click', handleExportToExcel);
-  let interestedMunicipalityLabel = "";
+  let interestedMunicipalityLabel;
 
   mandatendatabankList = await fetchMandatenbank();
   console.log("MasterList count: ", mandatendatabankList.length);
@@ -489,7 +574,11 @@ $(document).ready(async () => {
 async function start_loading(municipalities, interestedMunicipalityLabel, blueprintOfAP) {
   document.getElementById("progressbar").value = 0;
   const specificPublication = document.getElementById("specificPublication").value;
-  
+  let startZitting = document.getElementById("startZitting").value;
+  let eindZitting = document.getElementById("eindZitting").value;
+  if (startZitting != "") startZitting = new Date(startZitting).toISOString();
+  if (eindZitting != "") eindZitting = new Date(eindZitting).toISOString();
+
   // Specific publication
   console.log(specificPublication)
   if (specificPublication != "") {
@@ -509,7 +598,7 @@ async function start_loading(municipalities, interestedMunicipalityLabel, bluepr
       if (m) {
         document.getElementById('processing_now').innerHTML = "Publications found for " + m.municipalityLabel + ":";
 
-        await processMunicipality(municipalities_sliced, m, blueprintOfAP);
+        await processMunicipality(municipalities_sliced, m, blueprintOfAP, startZitting, eindZitting);
         
         document.getElementById("progressbar").value += (100/municipalities_sliced.length);
       }; 
@@ -525,7 +614,7 @@ async function start_loading(municipalities, interestedMunicipalityLabel, bluepr
     for (const m of municipalities_sliced) {
       document.getElementById('processing_now').innerHTML = "Publications found for" + m.municipalityLabel + ": ";
 
-      await processMunicipality(municipalities_sliced, m, blueprintOfAP);
+      await processMunicipality(municipalities_sliced, m, blueprintOfAP, startZitting, eindZitting);
 
       document.getElementById("progressbar").value += (100/municipalities_sliced.length);
     }     
@@ -537,7 +626,7 @@ async function start_loading(municipalities, interestedMunicipalityLabel, bluepr
   console.log("done");
 }
 
-async function processMunicipality(municipalities, m, blueprintOfAP) {
+async function processMunicipality(municipalities, m, blueprintOfAP, startZitting, eindZitting) {
   // There is probably a certificate error when the entrypoint exists without using a proxy
   const certificateProblem = !urlExists(proxy + m.entrypoint) && urlExists(m.entrypoint);
   let proxyForMunicipality = certificateProblem ? "" : proxy;
@@ -545,7 +634,7 @@ async function processMunicipality(municipalities, m, blueprintOfAP) {
   const position = municipalities.indexOf(m)+1;
   console.log("Retrieving publications of municipality " + m.municipalityLabel + " (" + position + "/" + municipalities.length + "): with entry point: " + m.entrypoint);
   const publicationsFromSource = await getLinkToPublications([m], proxyForMunicipality);
-  const publicationsFromSourceWithoutSessionId = [];
+  let publicationsFromSourceWithoutSessionId = [];
   for (let p of publicationsFromSource) {
     const cleanPub = removeSessionId(p);
     
@@ -555,54 +644,71 @@ async function processMunicipality(municipalities, m, blueprintOfAP) {
   if (publicationsFromSource.length != publicationsFromSourceWithoutSessionId.length) brokenLinksToPublications = true;
   console.log(publicationsFromSource.length + " publications found for municipality: " + m.municipalityLabel);
   
-  const publicationsCollected = await getCollectedPublications(m.municipalityLabel);
-  //console.log(publicationsCollected.length + " publications have been collected by harvester for municipality: " + m.municipalityLabel);
-
-  const publicationsNotYetCollected = publicationsFromSourceWithoutSessionId.filter(x => !publicationsCollected.includes(x));
-  //console.log("Net yet collected: " + publicationsFromSource);
-  const publicationsHarvestedButNotFoundAtSource = publicationsCollected.filter(x => !publicationsFromSourceWithoutSessionId.includes(x));
-  //console.log("Not found at source: " + publicationsHarvestedButNotFoundAtSource);
-  
-  const report = {
-    "Gemeente": m.municipalityLabel,
-    "URL LBLOD-omgeving": m.entrypoint,
-    "Broken link to publications": brokenLinksToPublications,
-    "Number of publications at the source: ": publicationsFromSource.length,
-    "Number of publications not yet collected": publicationsNotYetCollected.length,
-    "Number of publications that have been archived (harvested but not found at source)": publicationsHarvestedButNotFoundAtSource.length,
-    "Publications not yet collected": publicationsNotYetCollected,
-    "Publications not available anymore at source:": publicationsHarvestedButNotFoundAtSource
-  };
-  
-  const numberForBlueprint = publicationsFromSourceWithoutSessionId.length < NUMBER_OF_PUBLICATIONS_FOR_BLUEPRINT ? publicationsFromSourceWithoutSessionId.length : NUMBER_OF_PUBLICATIONS_FOR_BLUEPRINT;
-  // Blue print based on a number of publications
-  const blueprintOfMunicipality = await getBlueprintOfMunicipality(getRandom(publicationsFromSourceWithoutSessionId, numberForBlueprint), proxyForMunicipality);
-  
-  console.log("Blue print of municipality generated");
-  // Add blueprint to report
-  for (const b of blueprintOfAP) {
-    let label = b.name;
-    if (b.niveau != "") label += " (" + b.niveau + ")";
-    if (blueprintOfMunicipality.includes(b.uri)) report[label] = "X";
-    else report[label] = "";
+  let publicationsPerBestuursorgaan;
+  // Filter publications on start and end time of Zitting
+  if (startZitting != "" && eindZitting != "") {
+    publicationsPerBestuursorgaan = await getRelevantPublicationsWithinTimeInterval(publicationsFromSourceWithoutSessionId, proxyForMunicipality, startZitting, eindZitting);
+  } else {
+    publicationsPerBestuursorgaan = {
+      "onbekend": publicationsFromSourceWithoutSessionId
+    };
   }
-
-  // Check level-2 score. Re-use of mandataris url from mandatadatabank.
-  const numberForMandaten = publicationsFromSourceWithoutSessionId.length < NUMBER_OF_PUBLICATIONS_FOR_MANDATARIS ? publicationsFromSourceWithoutSessionId.length : NUMBER_OF_PUBLICATIONS_FOR_MANDATARIS;
-  const level2result = await validateLevel2(getRandom(publicationsFromSourceWithoutSessionId, numberForMandaten), proxyForMunicipality);
-  console.log("Result level 2");
-  console.log(level2result);
-
-  // Add the score to the report
-
-  report["Re-use mandatarissen %"] = level2result.percentage;
-  report["Number of found mandatarissen"] = level2result.mandatarissenFoundInPublications.length;
-  report["Mandatarissen found"] = level2result.mandatarissenFoundInPublications;
-  report["Mandatarissen found, but not linked to mandatendatabank"] = level2result.mandatarissenFoundInPublicationsThatAreNotLinked;
   
-  data.push(report);
-  // 3. Check if publication is already harvested
-  //await sleep(10000);
+  for (const bestuursorgaan in publicationsPerBestuursorgaan) {
+    console.log("Checking publications of bestuursorgaan: " + bestuursorgaan);
+    publicationsFromSourceWithoutSessionId = publicationsPerBestuursorgaan[bestuursorgaan];
+    const publicationsCollected = await getCollectedPublications(m.municipalityLabel);
+    //console.log(publicationsCollected.length + " publications have been collected by harvester for municipality: " + m.municipalityLabel);
+
+    const publicationsNotYetCollected = publicationsFromSourceWithoutSessionId.filter(x => !publicationsCollected.includes(x));
+    //console.log("Net yet collected: " + publicationsFromSource);
+    const publicationsHarvestedButNotFoundAtSource = publicationsCollected.filter(x => !publicationsFromSourceWithoutSessionId.includes(x));
+    //console.log("Not found at source: " + publicationsHarvestedButNotFoundAtSource);
+    
+    const report = {
+      "Gemeente": m.municipalityLabel,
+      "Bestuursorgaan": bestuursorgaan,
+      "Startdatum": startZitting,
+      "Einddatum": eindZitting,
+      "URL LBLOD-omgeving": m.entrypoint,
+      "Broken link to publications": brokenLinksToPublications,
+      "Number of publications at the source: ": publicationsFromSourceWithoutSessionId.length,
+      "Number of publications not yet collected": publicationsNotYetCollected.length,
+      //"Number of publications that have been archived (harvested but not found at source)": publicationsHarvestedButNotFoundAtSource.length,
+      "Publications not yet collected": publicationsNotYetCollected,
+      //"Publications not available anymore at source:": publicationsHarvestedButNotFoundAtSource
+    };
+    
+    const numberForBlueprint = publicationsFromSourceWithoutSessionId.length < NUMBER_OF_PUBLICATIONS_FOR_BLUEPRINT ? publicationsFromSourceWithoutSessionId.length : NUMBER_OF_PUBLICATIONS_FOR_BLUEPRINT;
+    // Blue print based on a number of publications
+    const blueprintOfMunicipality = await getBlueprintOfMunicipality(getRandom(publicationsFromSourceWithoutSessionId, numberForBlueprint), proxyForMunicipality);
+    
+    console.log("Blue print of municipality generated");
+    // Add blueprint to report
+    for (const b of blueprintOfAP) {
+      let label = b.name;
+      if (b.niveau != "") label += " (" + b.niveau + ")";
+      if (Object.keys(blueprintOfMunicipality).includes(b.uri)) report[label] = blueprintOfMunicipality[b.uri]; // count
+      else report[label] = "";
+    }
+
+    // Check level-2 score. Re-use of mandataris url from mandatadatabank.
+    const numberForMandaten = publicationsFromSourceWithoutSessionId.length < NUMBER_OF_PUBLICATIONS_FOR_MANDATARIS ? publicationsFromSourceWithoutSessionId.length : NUMBER_OF_PUBLICATIONS_FOR_MANDATARIS;
+    const level2result = await validateLevel2(publicationsFromSourceWithoutSessionId, proxyForMunicipality);
+    console.log("Result level 2");
+    console.log(level2result);
+
+    // Add the score to the report
+
+    report["Re-use mandatarissen %"] = level2result.percentage;
+    report["Number of found mandatarissen"] = level2result.mandatarissenFoundInPublications.length;
+    //report["Mandatarissen found"] = level2result.mandatarissenFoundInPublications;
+    report["Number of mandatarissen not linked"] = level2result.mandatarissenFoundInPublicationsThatAreNotLinked.length;
+    
+    data.push(report);
+    // 3. Check if publication is already harvested
+    //await sleep(10000);
+  }
 }
 
 function sleep(ms) {
@@ -611,7 +717,7 @@ function sleep(ms) {
 
 function urlExists(url) {
   var http = new XMLHttpRequest();
-  http.open('HEAD', url, false);
+  http.open('GET', url, false);
   http.send();
   if (http.status != 404)
       return true;
