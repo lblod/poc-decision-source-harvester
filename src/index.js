@@ -9,6 +9,7 @@ const engine = new Comunica.QueryEngine();
 
 const NUMBER_OF_PUBLICATIONS_FOR_BLUEPRINT = 100;
 const NUMBER_OF_PUBLICATIONS_FOR_MANDATARIS = 100;
+const NUMBER_OF_MUNICIPALITIES_PER_BATCH = 5;
 const data = [];
 let mandatendatabankList = [];
 // const start_at =193;
@@ -147,7 +148,7 @@ function isPublicationRetrieved(linkToPublication, municipalityLabel) {
                     ]
                     ]
 
-            FILTER (?taskIndex = "0")
+            FILTER (?taskIndex = "7")
             FILTER (regex(str(?url), "${linkToPublication}"))
           }
 
@@ -611,12 +612,15 @@ async function start_loading(municipalities, interestedMunicipalityLabel, bluepr
       municipalities_sliced = municipalities.slice(start_at-1);
     }
 
-    for (const m of municipalities_sliced) {
-      document.getElementById('processing_now').innerHTML = "Publications found for" + m.municipalityLabel + ": ";
+    for (let start = 0; start < municipalities_sliced.length; start+= NUMBER_OF_MUNICIPALITIES_PER_BATCH) {
+      //document.getElementById('processing_now').innerHTML = "Publications found for" + m.municipalityLabel + ": ";
+      const end = start + NUMBER_OF_MUNICIPALITIES_PER_BATCH > municipalities_sliced.length ? municipalities_sliced.length : start + NUMBER_OF_MUNICIPALITIES_PER_BATCH;
+      
+      await Promise.all(municipalities_sliced.slice(start, end).map((m) => processMunicipality(municipalities_sliced, m, blueprintOfAP, startZitting, eindZitting)));
 
-      await processMunicipality(municipalities_sliced, m, blueprintOfAP, startZitting, eindZitting);
+      //await processMunicipality(municipalities_sliced, m, blueprintOfAP, startZitting, eindZitting);
 
-      document.getElementById("progressbar").value += (100/municipalities_sliced.length);
+      //document.getElementById("progressbar").value += (100/municipalities_sliced.length);
     }     
   }
     
@@ -673,7 +677,7 @@ async function processMunicipality(municipalities, m, blueprintOfAP, startZittin
       "URL LBLOD-omgeving": m.entrypoint,
       "Broken link to publications": brokenLinksToPublications,
       "Number of publications at the source: ": publicationsFromSourceWithoutSessionId.length,
-      "Number of publications not yet collected": publicationsNotYetCollected.length,
+      "Number of publications not yet harvested": publicationsNotYetCollected.length,
       //"Number of publications that have been archived (harvested but not found at source)": publicationsHarvestedButNotFoundAtSource.length,
       "Publications not yet collected": publicationsNotYetCollected,
       //"Publications not available anymore at source:": publicationsHarvestedButNotFoundAtSource
