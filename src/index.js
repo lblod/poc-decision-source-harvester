@@ -11,7 +11,9 @@ const NUMBER_OF_PUBLICATIONS_FOR_BLUEPRINT = 100;
 const NUMBER_OF_PUBLICATIONS_FOR_MANDATARIS = 100;
 const NUMBER_OF_MUNICIPALITIES_PER_BATCH = 5;
 const data = [];
-let mandatendatabankList = [];
+let mandatarissenList = [];
+let voorzittersList = [];
+let secretarissenList = [];
 // const start_at =193;
 
 // Put in comment when you do not want to harvest a specific municipality
@@ -351,18 +353,24 @@ function populateDropdown(dropdown, records) {
   });
 };
 
-
-function fetchMandatenbank(){
-  // query mandatenbank to retrieve all the mandatarissen. Should only run once. 
+function fetchMandatarissenThatAreNotVoorzitterOrSecretaris(){
   return new Promise((resolve, reject) => {
     try {
-      const allMandatarissen = [];
+      const mandatarissen = [];
       engine.queryBindings(`
       PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
 
       SELECT DISTINCT ?a {
         ?a a mandaat:Mandataris ;
-          mandaat:isBestuurlijkeAliasVan ?p .
+        <http://www.w3.org/ns/org#holds> [ <http://www.w3.org/ns/org#role> ?rol ] .
+        {
+        select ?rol
+          where {
+            ?rol a skos:Concept ;
+                skos:prefLabel ?rollabel .
+            FILTER (!regex(lcase(?rollabel), "voorzitter") && !regex(lcase(?rollabel), "secretaris"))
+          }
+        }
       }
       `, {
         sources: ['https://qa.centrale-vindplaats.lblod.info/sparql'],
@@ -372,11 +380,10 @@ function fetchMandatenbank(){
         httpRetryOnServerError: true
       }).then(function (bindingsStream) {
         bindingsStream.on('data', function (data) {
-           // Each variable binding is an RDFJS term
-           allMandatarissen.push(data.get('a').value);
+           mandatarissen.push(data.get('a').value);
         });
         bindingsStream.on('end', function() {
-          resolve(allMandatarissen);
+          resolve(mandatarissen);
         });
         bindingsStream.on('error', function() {
           console.log(error);
@@ -390,26 +397,63 @@ function fetchMandatenbank(){
   });
 };
 
+function fetchMandatarissenWithRole(roleLabel){
+  return new Promise((resolve, reject) => {
+    try {
+      const mandatarissen = [];
+      engine.queryBindings(`
+      PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+
+      SELECT DISTINCT ?a {
+        ?a a mandaat:Mandataris ;
+        <http://www.w3.org/ns/org#holds> [ <http://www.w3.org/ns/org#role> ?rol ] .
+        {
+        select ?rol
+          where {
+            ?rol a skos:Concept ;
+                skos:prefLabel ?rollabel .
+            FILTER (regex(lcase(?rollabel), "${roleLabel}"))
+          }
+        }
+      }
+      `, {
+        sources: ['https://qa.centrale-vindplaats.lblod.info/sparql'],
+        lenient: true,
+        httpRetryCount: 5,
+        httpRetryDelay: 2000,
+        httpRetryOnServerError: true
+      }).then(function (bindingsStream) {
+        bindingsStream.on('data', function (data) {
+           mandatarissen.push(data.get('a').value);
+        });
+        bindingsStream.on('end', function() {
+          resolve(mandatarissen);
+        });
+        bindingsStream.on('error', function() {
+          console.log(error);
+          reject(e);
+        });
+      });
+    } catch (e) {
+      console.log("jup")
+      reject(e);
+    }
+  });
+};
 
 function validateLevel2(publications, proxy) {
   return new Promise(async (resolve, reject) => {
     try {
       console.log("start validate level 2");
-      const mandatarissenInPublications = [];
+      const mandatarissenInPublications = []; // does not contain voorzitter and secretaris
+      const voorzittersInPublications = [];
+      const secretarissenInPublications = [];
       for (let p of publications) {
-        console.log("check publication for level 2")
-        const bindingsStream = await engine.queryBindings(`
+        console.log("check mandatarissen")
+        let bindingsStream = await engine.queryBindings(`
         PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 
-        SELECT DISTINCT ?mandataris {
-          {
-          ?a besluit:heeftVoorzitter ?mandataris .
-          }
-          UNION 
-          {
-          ?b besluit:heeftSecretaris ?mandataris . 
-          } 
-          UNION 
+        SELECT DISTINCT ?mandataris { 
           {
           ?c besluit:heeftAanwezigeBijStart ?mandataris . 
           } 
@@ -442,34 +486,76 @@ function validateLevel2(publications, proxy) {
           httpRetryDelay: 5000,
           httpRetryOnServerError: false
         });
-        const bindings = await bindingsStream.toArray();
+        let bindings = await bindingsStream.toArray();
         for (let data of bindings) {
           // Build list of mandatarissen in publications
           const mandataris = data.get('mandataris').value;
           if (!mandatarissenInPublications.includes(mandataris)) mandatarissenInPublications.push(mandataris);
         }
+        console.log("Check voorzitters");
+        bindingsStream = await engine.queryBindings(`
+        PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+
+        SELECT DISTINCT ?mandataris {
+          ?a besluit:heeftVoorzitter ?mandataris .
+        }
+            `, {
+          sources: [p],
+          lenient: true,
+          httpProxyHandler: new ProxyHandlerStatic(proxy),
+          httpRetryCount: 2,
+          httpRetryDelay: 5000,
+          httpRetryOnServerError: false
+        });
+        bindings = await bindingsStream.toArray();
+        for (let data of bindings) {
+          const mandataris = data.get('mandataris').value;
+          if (!voorzittersInPublications.includes(mandataris)) voorzittersInPublications.push(mandataris);
+        }
+        console.log("Check secretaris");
+        bindingsStream = await engine.queryBindings(`
+        PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+
+        SELECT DISTINCT ?mandataris {
+          ?b besluit:heeftSecretaris ?mandataris . 
+        }
+            `, {
+          sources: [p],
+          lenient: true,
+          httpProxyHandler: new ProxyHandlerStatic(proxy),
+          httpRetryCount: 2,
+          httpRetryDelay: 5000,
+          httpRetryOnServerError: false
+        });
+        bindings = await bindingsStream.toArray();
+        for (let data of bindings) {
+          const mandataris = data.get('mandataris').value;
+          if (!secretarissenInPublications.includes(mandataris)) secretarissenInPublications.push(mandataris);
+        }
       }
       
-      const matchedMandataris = mandatendatabankList.filter(element => mandatarissenInPublications.includes(element));
-      console.log("MatchedMandatarissen: " + matchedMandataris);
-      const notMatchedMandataris = mandatarissenInPublications.filter(element => !mandatendatabankList.includes(element));
-      console.log("Not matched: " + notMatchedMandataris);
+      const matchedMandataris = mandatarissenList.filter(element => mandatarissenInPublications.includes(element));
+      const notMatchedMandataris = mandatarissenInPublications.filter(element => !mandatarissenList.includes(element));
+      const percentageReuseMandatarissen = mandatarissenInPublications.length > 0 ? matchedMandataris.length / mandatarissenInPublications.length * 100 : 0;
 
-      const numberReusedMandatarissen = matchedMandataris.length;
-      const numberMandatarissenInPub = mandatarissenInPublications.length;
+      const matchedVoorzitters = voorzittersList.filter(element => voorzittersInPublications.includes(element));
+      const notMatchedVoorzitters = voorzittersInPublications.filter(element => !voorzittersList.includes(element));
+      const percentageReuseVoorzitters = voorzittersInPublications > 0 ? matchedVoorzitters.length / voorzittersInPublications.length * 100 : 0;
 
-      let percentageReuse = 0
-      if(numberMandatarissenInPub > 0){
-        percentageReuse = numberReusedMandatarissen / numberMandatarissenInPub * 100;
-      }
-
-      console.log("Aantal gematchet met mandatendatabank", matchedMandataris.length);
-      console.log("Aantal gevonden in publicaties", mandatarissenInPublications.length);
+      const matchedSecretarissen = secretarissenList.filter(element => secretarissenInPublications.includes(element));
+      const notMatchedSecretarissen = secretarissenInPublications.filter(element => !secretarissenList.includes(element));
+      const percentageReuseSecretarissen = secretarissenInPublications > 0 ? matchedSecretarissen.length / secretarissenInPublications.length * 100 : 0;
 
       resolve({
-        "percentage": percentageReuse,
+        "percentageReuseMandatarissen": percentageReuseMandatarissen,
         "mandatarissenFoundInPublications": mandatarissenInPublications,
-        "mandatarissenFoundInPublicationsThatAreNotLinked": notMatchedMandataris
+        "mandatarissenFoundInPublicationsThatAreNotLinked": notMatchedMandataris,
+        "percentageReuseVoorzitters": percentageReuseVoorzitters,
+        "voorzittersFoundInPublications": voorzittersInPublications,
+        "voorzittersFoundInPublicationsThatAreNotLinked": notMatchedVoorzitters,
+        "percentageReuseSecretarissen": percentageReuseSecretarissen,
+        "secretarissenFoundInPublications": mandatarissenInPublications,
+        "secretarissenFoundInPublicationsThatAreNotLinked": notMatchedSecretarissen
       });
     } catch (e) {
       console.log("jup")
@@ -545,8 +631,9 @@ $(document).ready(async () => {
   const link = document.getElementById('export').addEventListener('click', handleExportToExcel);
   let interestedMunicipalityLabel;
 
-  mandatendatabankList = await fetchMandatenbank();
-  console.log("MasterList count: ", mandatendatabankList.length);
+  mandatarissenList = await fetchMandatarissenThatAreNotVoorzitterOrSecretaris();
+  secretarissenList = await fetchMandatarissenWithRole("secretaris");
+  voorzittersList = await fetchMandatarissenWithRole("voorzitter");
   
   const drp_municipalitiesList = document.getElementById("municipalitiesList");
   drp_municipalitiesList.onchange = function() {
@@ -704,10 +791,18 @@ async function processMunicipality(municipalities, m, blueprintOfAP, startZittin
 
     // Add the score to the report
 
-    report["Re-use mandatarissen %"] = level2result.percentage;
+    report["Re-use mandatarissen %"] = level2result.percentageReuseMandatarissen;
     report["Number of found mandatarissen"] = level2result.mandatarissenFoundInPublications.length;
     //report["Mandatarissen found"] = level2result.mandatarissenFoundInPublications;
     report["Number of mandatarissen not linked"] = level2result.mandatarissenFoundInPublicationsThatAreNotLinked.length;
+    
+    report["Re-use voorzitters %"] = level2result.percentageReuseVoorzitters;
+    report["Number of found voorzitters"] = level2result.voorzittersFoundInPublications.length;
+    report["Number of voorzitters not linked"] = level2result.voorzittersFoundInPublicationsThatAreNotLinked.length;
+    
+    report["Re-use secretarissen %"] = level2result.percentageReuseSecretarissen;
+    report["Number of found secretarissen"] = level2result.secretarissenFoundInPublications.length;
+    report["Number of secretarissen not linked"] = level2result.secretarissenFoundInPublicationsThatAreNotLinked.length;
     
     data.push(report);
     // 3. Check if publication is already harvested
