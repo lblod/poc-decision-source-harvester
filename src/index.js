@@ -9,11 +9,13 @@ const engine = new Comunica.QueryEngine();
 
 const NUMBER_OF_PUBLICATIONS_FOR_BLUEPRINT = 100;
 const NUMBER_OF_PUBLICATIONS_FOR_MANDATARIS = 100;
-const NUMBER_OF_MUNICIPALITIES_PER_BATCH = 5;
+const NUMBER_OF_MUNICIPALITIES_PER_BATCH = 1;
+const NUMBER_OF_RETRY_COUNTS = 2;
+
 const data = [];
 let mandatarissenList = [];
 let voorzittersList = [];
-let secretarissenList = [];
+let functionarissenList = [];
 // const start_at =193;
 
 // Put in comment when you do not want to harvest a specific municipality
@@ -45,10 +47,7 @@ function getLinkToPublications(municipalities, proxy) {
         }
         UNION {
           ?s besluit:heeftBesluitenlijst ?o .
-        }
-        UNION {
-          ?s besluit:heeftAgenda ?o .
-        }
+        } 
         UNION {
           ?s besluit:heeftUittreksel ?o .
         }
@@ -60,7 +59,7 @@ function getLinkToPublications(municipalities, proxy) {
         sources: sources,
         lenient: true,
         httpProxyHandler: new ProxyHandlerStatic(proxy),
-        httpRetryCount: 1,
+        httpRetryCount: NUMBER_OF_RETRY_COUNTS,
         httpRetryDelay: 2000,
         httpRetryOnServerError: false
       }).then(function (bindingsStream) {
@@ -105,8 +104,8 @@ where {
 }
           `, {
         sources: ['https://qa.harvesting-self-service.lblod.info/sparql'],
-        httpRetryCount: 1,
-        httpRetryDelay: 2000,
+        httpRetryCount: NUMBER_OF_RETRY_COUNTS,
+        httpRetryDelay: 10000,
         httpRetryOnServerError: true
       }).then(function (bindingsStream) {
         bindingsStream.on('data', function (data) {
@@ -157,8 +156,8 @@ function isPublicationRetrieved(linkToPublication, municipalityLabel) {
           LIMIT 1
           `, {
         sources: ['https://qa.harvesting-self-service.lblod.info/sparql'],
-        httpRetryCount: 5,
-        httpRetryDelay: 2000,
+        httpRetryCount: NUMBER_OF_RETRY_COUNTS,
+        httpRetryDelay: 10000,
         httpRetryOnServerError: true
       }).then(function (bindingsStream) {
         bindingsStream.on('data', function (data) {
@@ -205,8 +204,8 @@ function getCollectedPublications(municipalityLabel) {
           }
           `, {
         sources: ['https://qa.harvesting-self-service.lblod.info/sparql'],
-        httpRetryCount: 5,
-        httpRetryDelay: 2000,
+        httpRetryCount: NUMBER_OF_RETRY_COUNTS,
+        httpRetryDelay: 10000,
         httpRetryOnServerError: true
       }).then(function (bindingsStream) {
         bindingsStream.on('data', function (data) {
@@ -230,39 +229,56 @@ function getBlueprintOfMunicipality(publications, proxy) {
   return new Promise(async (resolve, reject) => {
     try {
       const checkedBindings = [];
-      const blueprint = {};
-      for (let p of publications) {
-        console.log("check publication for blueprint of municipality");
-        const bindingsStream = await engine.queryBindings(`
+      const blueprint = [];
+      if (publications.length === 0) resolve(blueprint);
+     // for (let p of publications) {
+        console.log("check publication for blueprint of municipality " + publications.length);
+        engine.queryBindings(`
         select DISTINCT *
         where {
-          {
-          ?classInstance a ?classOrProperty .
+  {
+          SELECT ?classUri (str(COUNT(DISTINCT ?classInstance)) AS ?count)
+    WHERE {
+                ?classInstance a ?classUri .
           }
-          UNION {
-            ?classInstance ?classOrProperty ?value .
-          }
+GROUP BY ?classUri
+  }
+          UNION 
+  {
+    select ?classUri ?propertyUri (str(count(DISTINCT ?classInstance)) as ?count)
+    where {
+
+      ?classInstance a ?classUri ;
+                     ?propertyUri ?value .
+      FILTER (?propertyUri != <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>)
+    }
+    GROUP BY ?classUri ?propertyUri
+   }
         }
             `, {
-          sources: [p],
+          // sources: [p],
+          sources: publications,
           lenient: true,
           httpProxyHandler: new ProxyHandlerStatic(proxy),
-          httpRetryCount: 2,
-          httpRetryDelay: 2000,
+          httpRetryCount: 0,
+          // httpRetryDelay: 2000,
           httpRetryOnServerError: false
+        }).then(function (bindingsStream) {
+          bindingsStream.on('data', function (data) {
+            const tmp = {};
+            tmp["classUri"] = data.get('classUri').value;
+            tmp["propertyUri"] = data.get('propertyUri') ? data.get('propertyUri').value : "";
+            tmp["count"] = parseInt(data.get('count').value);
+            blueprint.push(tmp);
+          });
+          bindingsStream.on('end', function() {
+            resolve(blueprint);
+          });
+          bindingsStream.on('error', function() {
+            console.log(error);
+            reject(e);
+          });
         });
-        
-        let bindings = await bindingsStream.toArray();
-        bindings = bindings.filter((b) => !checkedBindings.includes(b));
-        for (let data of bindings) {
-          const classOrProperty = data.get('classOrProperty').value;
-          // Save count per classOrProperty
-          if(!blueprint[classOrProperty]) blueprint[classOrProperty] = 1;
-          else blueprint[classOrProperty]++;
-          checkedBindings.push(data);
-        }
-      }
-      resolve(blueprint);
     } catch (e) {
       console.log("jup")
       reject(e);
@@ -276,39 +292,46 @@ function getBlueprintOfApplicationProfile() {
     try {
       const blueprint = [];
       engine.queryBindings(`
-          PREFIX sh: <http://www.w3.org/ns/shacl#>
-PREFIX lblodBesluit: <http://lblod.data.gift/vocabularies/besluit/>
-SELECT DISTINCT ?uri ?name ?niveau
-WHERE {
-  {
-  	?s sh:targetClass ?uri .
-    OPTIONAL {
-      ?s sh:name ?name .
-    }
-    OPTIONAL {
-      ?s lblodBesluit:maturiteitsniveau ?niveau .
-    }
-  }
-  UNION
-  {
-    ?s sh:path ?uri .
-    OPTIONAL {
-      ?s sh:name ?name .
-    }
-    OPTIONAL {
-      ?s lblodBesluit:maturiteitsniveau ?niveau .
-    }
-  }
-}
+      PREFIX sh: <http://www.w3.org/ns/shacl#>
+      PREFIX lblodBesluit: <http://lblod.data.gift/vocabularies/besluit/>
+      SELECT DISTINCT ?classUri ?propertyUri ?className ?propertyName ?name ?niveau
+      WHERE {
+        {
+          ?s sh:targetClass ?classUri .
+          OPTIONAL {
+            ?s sh:name ?name .
+          }
+          OPTIONAL {
+            ?s lblodBesluit:maturiteitsniveau ?niveau .
+          }
+        }
+        UNION
+        {
+          ?node sh:targetClass ?classUri ;
+                sh:property ?s ;
+                sh:name ?className .
+          ?s sh:path ?propertyUri .
+          OPTIONAL {
+            ?s sh:name ?propertyName .
+          }
+          OPTIONAL {
+            ?s lblodBesluit:maturiteitsniveau ?niveau .
+          }
+          BIND (concat(?className, ' - ', ?propertyName) AS ?name)
+        }
+      }
           `, {
         sources: [ AP ],
-        httpRetryCount: 5,
+        httpRetryCount: NUMBER_OF_RETRY_COUNTS,
         httpRetryDelay: 2000,
         httpRetryOnServerError: true
       }).then(function (bindingsStream) {
         bindingsStream.on('data', function (data) {
           const v = {};
-          v["uri"] = data.get('uri') ? data.get('uri').value : "";
+          v["propertyUri"] = data.get('propertyUri') ? data.get('propertyUri').value : "";
+          v["classUri"] = data.get('classUri') ? data.get('classUri').value : "";
+          v["propertyName"] = data.get('propertyName') ? data.get('propertyName').value : "";
+          v["className"] = data.get('className') ? data.get('className').value : "";
           v["name"] = data.get('name') ? data.get('name').value : "";
           v["niveau"] = data.get('niveau') ? data.get('niveau').value : "";
 
@@ -353,12 +376,13 @@ function populateDropdown(dropdown, records) {
   });
 };
 
-function fetchMandatarissenThatAreNotVoorzitterOrSecretaris(){
+function fetchMandatarissenThatAreNotVoorzitter(){
   return new Promise((resolve, reject) => {
     try {
       const mandatarissen = [];
       engine.queryBindings(`
       PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+      PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 
       SELECT DISTINCT ?a {
         ?a a mandaat:Mandataris ;
@@ -368,15 +392,16 @@ function fetchMandatarissenThatAreNotVoorzitterOrSecretaris(){
           where {
             ?rol a skos:Concept ;
                 skos:prefLabel ?rollabel .
-            FILTER (!regex(lcase(?rollabel), "voorzitter") && !regex(lcase(?rollabel), "secretaris"))
+            FILTER (!regex(lcase(?rollabel), "voorzitter"))
           }
         }
       }
       `, {
         sources: ['https://qa.centrale-vindplaats.lblod.info/sparql'],
         lenient: true,
-        httpRetryCount: 5,
-        httpRetryDelay: 2000,
+        httpRetryCount: NUMBER_OF_RETRY_COUNTS,
+        httpRetryDelay: 10000,
+        httpTimeout: 60_000,
         httpRetryOnServerError: true
       }).then(function (bindingsStream) {
         bindingsStream.on('data', function (data) {
@@ -403,6 +428,7 @@ function fetchMandatarissenWithRole(roleLabel){
       const mandatarissen = [];
       engine.queryBindings(`
       PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+      PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 
       SELECT DISTINCT ?a {
         ?a a mandaat:Mandataris ;
@@ -419,7 +445,8 @@ function fetchMandatarissenWithRole(roleLabel){
       `, {
         sources: ['https://qa.centrale-vindplaats.lblod.info/sparql'],
         lenient: true,
-        httpRetryCount: 5,
+        httpRetryCount: NUMBER_OF_RETRY_COUNTS,
+        httpTimeout: 60_000,
         httpRetryDelay: 2000,
         httpRetryOnServerError: true
       }).then(function (bindingsStream) {
@@ -441,121 +468,201 @@ function fetchMandatarissenWithRole(roleLabel){
   });
 };
 
+function fetchFunctionarissen(){
+  return new Promise((resolve, reject) => {
+    try {
+      const mandatarissen = [];
+      engine.queryBindings(`
+      PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+      PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+      SELECT DISTINCT ?a {
+        ?a a <http://data.lblod.info/vocabularies/leidinggevenden/Functionaris> .
+      }
+      `, {
+        sources: ['https://qa.centrale-vindplaats.lblod.info/sparql'],
+        lenient: true,
+        httpRetryCount: NUMBER_OF_RETRY_COUNTS,
+        httpTimeout: 60_000,
+        httpRetryDelay: 2000,
+        httpRetryOnServerError: true
+      }).then(function (bindingsStream) {
+        bindingsStream.on('data', function (data) {
+           mandatarissen.push(data.get('a').value);
+        });
+        bindingsStream.on('end', function() {
+          resolve(mandatarissen);
+        });
+        bindingsStream.on('error', function() {
+          console.log(error);
+          reject(e);
+        });
+      });
+    } catch (e) {
+      console.log("jup")
+      reject(e);
+    }
+  });
+};
+
+function getMandatarisOfVoorzitter(voorzitters){
+  return new Promise((resolve, reject) => {
+    try {
+      const mandatarissen = [];
+      let voorzitterString = "";
+      voorzitters.map(v => voorzitterString += ` <${v}>`);
+      engine.queryBindings(`
+      PREFIX mandaat: <http://data.vlaanderen.be/ns/mandaat#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT DISTINCT ?mandataris {
+ ?voorzitter a mandaat:Mandataris ;
+              mandaat:isBestuurlijkeAliasVan ?persoon .
+  ?mandataris a mandaat:Mandataris ;
+              mandaat:isBestuurlijkeAliasVan ?persoon .
+  FILTER (?mandataris != ?voorzitter)
+  
+  VALUES ?voorzitter { 
+  	${voorzitterString}
+  }
+}
+      `, {
+        sources: ['https://qa.centrale-vindplaats.lblod.info/sparql'],
+        lenient: true,
+        httpRetryCount: NUMBER_OF_RETRY_COUNTS,
+        httpTimeout: 60_000,
+        httpRetryDelay: 2000,
+        httpRetryOnServerError: true
+      }).then(function (bindingsStream) {
+        bindingsStream.on('data', function (data) {
+           mandatarissen.push(data.get('mandataris').value);
+        });
+        bindingsStream.on('end', function() {
+          resolve(mandatarissen);
+        });
+        bindingsStream.on('error', function() {
+          console.log(error);
+          reject(e);
+        });
+      });
+    } catch (e) {
+      console.log("jup")
+      reject(e);
+    }
+  });
+};
+
 function validateLevel2(publications, proxy) {
   return new Promise(async (resolve, reject) => {
     try {
       console.log("start validate level 2");
-      const mandatarissenInPublications = []; // does not contain voorzitter and secretaris
+      const stemmersInPublications = []; // does not contain voorzitter and secretaris
+      const aanwezigenInPublications = [];
       const voorzittersInPublications = [];
       const secretarissenInPublications = [];
-      for (let p of publications) {
-        console.log("check mandatarissen")
+      // for (let p of publications) {
         let bindingsStream = await engine.queryBindings(`
         PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
 
-        SELECT DISTINCT ?mandataris { 
+        SELECT DISTINCT ?stemmer ?aanwezige ?voorzitter ?secretaris { 
           {
-          ?c besluit:heeftAanwezigeBijStart ?mandataris . 
+          ?a besluit:heeftVoorstander ?stemmer . 
           } 
           UNION 
           {
-          ?d besluit:heeftAanwezige ?mandataris . 
+          ?b besluit:heeftTegenstander ?stemmer . 
           }
           UNION 
           {
-          ?e besluit:heeftVoorstander ?mandataris . 
+          ?c besluit:heeftOnthouder ?stemmer . 
+          }
+          UNION 
+          {
+          ?d besluit:heeftStemmer ?stemmer . 
+          }
+          UNION
+          {
+          ?e besluit:heeftAanwezigeBijStart ?aanwezige . 
           } 
           UNION 
           {
-          ?f besluit:heeftTegenstander ?mandataris . 
+          ?f besluit:heeftAanwezige ?aanwezige . 
           }
           UNION 
-          {
-          ?g besluit:heeftOnthouder ?mandataris . 
+            {
+          ?g besluit:heeftVoorzitter ?voorzitter .
           }
           UNION 
-          {
-          ?h besluit:heeftStemmer ?mandataris . 
+            {
+          ?h besluit:heeftSecretaris ?secretaris . 
           }
         }
             `, {
-          sources: [p],
+          // sources: [p],
+          sources: publications,
           lenient: true,
           httpProxyHandler: new ProxyHandlerStatic(proxy),
-          httpRetryCount: 2,
+          httpRetryCount: NUMBER_OF_RETRY_COUNTS,
           httpRetryDelay: 5000,
           httpRetryOnServerError: false
         });
         let bindings = await bindingsStream.toArray();
         for (let data of bindings) {
           // Build list of mandatarissen in publications
-          const mandataris = data.get('mandataris').value;
-          if (!mandatarissenInPublications.includes(mandataris)) mandatarissenInPublications.push(mandataris);
+          if (data.get('stemmer') && !stemmersInPublications.includes(data.get('stemmer').value)) stemmersInPublications.push(data.get('stemmer').value);
+          if (data.get('aanwezige') && !aanwezigenInPublications.includes(data.get('aanwezige').value)) aanwezigenInPublications.push(data.get('aanwezige').value);
+          if (data.get('voorzitter') && !voorzittersInPublications.includes(data.get('voorzitter').value)) voorzittersInPublications.push(data.get('voorzitter').value);
+          if (data.get('secretaris') && !secretarissenInPublications.includes(data.get('secretaris').value)) secretarissenInPublications.push(data.get('secretaris').value);
         }
-        console.log("Check voorzitters");
-        bindingsStream = await engine.queryBindings(`
-        PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
-
-        SELECT DISTINCT ?mandataris {
-          ?a besluit:heeftVoorzitter ?mandataris .
-        }
-            `, {
-          sources: [p],
-          lenient: true,
-          httpProxyHandler: new ProxyHandlerStatic(proxy),
-          httpRetryCount: 2,
-          httpRetryDelay: 5000,
-          httpRetryOnServerError: false
-        });
-        bindings = await bindingsStream.toArray();
-        for (let data of bindings) {
-          const mandataris = data.get('mandataris').value;
-          if (!voorzittersInPublications.includes(mandataris)) voorzittersInPublications.push(mandataris);
-        }
-        console.log("Check secretaris");
-        bindingsStream = await engine.queryBindings(`
-        PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
-
-        SELECT DISTINCT ?mandataris {
-          ?b besluit:heeftSecretaris ?mandataris . 
-        }
-            `, {
-          sources: [p],
-          lenient: true,
-          httpProxyHandler: new ProxyHandlerStatic(proxy),
-          httpRetryCount: 2,
-          httpRetryDelay: 5000,
-          httpRetryOnServerError: false
-        });
-        bindings = await bindingsStream.toArray();
-        for (let data of bindings) {
-          const mandataris = data.get('mandataris').value;
-          if (!secretarissenInPublications.includes(mandataris)) secretarissenInPublications.push(mandataris);
-        }
-      }
+        
+      // aanwezige can be mandataris, voorzitter or secretaris
+      const matchedAanwezige = aanwezigenInPublications.filter(element => mandatarissenList.includes(element) || voorzittersList.includes(element) || functionarissenList.includes(element));
+      const notMatchedAanwezige = aanwezigenInPublications.filter(element => !matchedAanwezige.includes(element));
+      const percentageReuseAanwezige = aanwezigenInPublications.length > 0 ? matchedAanwezige.length / aanwezigenInPublications.length * 100 : 0;
       
-      const matchedMandataris = mandatarissenList.filter(element => mandatarissenInPublications.includes(element));
-      const notMatchedMandataris = mandatarissenInPublications.filter(element => !mandatarissenList.includes(element));
-      const percentageReuseMandatarissen = mandatarissenInPublications.length > 0 ? matchedMandataris.length / mandatarissenInPublications.length * 100 : 0;
-
-      const matchedVoorzitters = voorzittersList.filter(element => voorzittersInPublications.includes(element));
-      const notMatchedVoorzitters = voorzittersInPublications.filter(element => !voorzittersList.includes(element));
+      // stemmer can be mandataris, but not voorzitter or secretaris
+      const matchedStemmer = stemmersInPublications.filter(element => mandatarissenList.includes(element) && !voorzittersList.includes(element) && !functionarissenList.includes(element));
+      const notMatchedStemmer = stemmersInPublications.filter(element => !matchedStemmer.includes(element));
+      const percentageReuseStemmer = stemmersInPublications.length > 0 ? matchedStemmer.length / stemmersInPublications.length * 100 : 0;
+      
+      const matchedVoorzitters = voorzittersInPublications.filter(element => voorzittersList.includes(element));
+      const notMatchedVoorzitters = voorzittersInPublications.filter(element => !matchedVoorzitters.includes(element));
       const percentageReuseVoorzitters = voorzittersInPublications > 0 ? matchedVoorzitters.length / voorzittersInPublications.length * 100 : 0;
 
-      const matchedSecretarissen = secretarissenList.filter(element => secretarissenInPublications.includes(element));
-      const notMatchedSecretarissen = secretarissenInPublications.filter(element => !secretarissenList.includes(element));
+      // Secretaris must be functionaris from leidinggevendendatabank
+      const matchedSecretarissen = secretarissenInPublications.filter(element => functionarissenList.includes(element));
+      const notMatchedSecretarissen = secretarissenInPublications.filter(element => !matchedSecretarissen.includes(element));
       const percentageReuseSecretarissen = secretarissenInPublications > 0 ? matchedSecretarissen.length / secretarissenInPublications.length * 100 : 0;
 
+      // At least one voorzitter must be in the list of aanwezigen
+      const foundVoorzitterInAanwezigen = aanwezigenInPublications.filter(element => voorzittersInPublications.includes(element)).length > 0;
+      // At least one secretaris must be in the list of aanwezigen
+      const foundSecretarisInAanwezigen = aanwezigenInPublications.filter(element => secretarissenInPublications.includes(element)).length > 0;
+      // The voorzitter must also be attending in its role as mandataris
+      console.log("VOorzitter - mandataris: " + await getMandatarisOfVoorzitter(matchedVoorzitters));
+      const foundVoorzitterThatIsAlsoAanwezigAsMandataris = (await getMandatarisOfVoorzitter(matchedVoorzitters)).filter(element => aanwezigenInPublications.includes(element)).length > 0;
+      console.log(foundVoorzitterThatIsAlsoAanwezigAsMandataris);
+
       resolve({
-        "percentageReuseMandatarissen": percentageReuseMandatarissen,
-        "mandatarissenFoundInPublications": mandatarissenInPublications,
-        "mandatarissenFoundInPublicationsThatAreNotLinked": notMatchedMandataris,
+        "percentageReuseAanwezigen": percentageReuseAanwezige,
+        "aanwezigenFoundInPublications": aanwezigenInPublications,
+        "aanwezigenFoundInPublicationsThatAreLinked": matchedAanwezige,
+        "aanwezigenFoundInPublicationsThatAreNotLinked": notMatchedAanwezige,
+        "percentageReuseStemmers": percentageReuseStemmer,
+        "stemmersFoundInPublications": stemmersInPublications,
+        "stemmersFoundInPublicationsThatAreLinked": matchedStemmer,
+        "stemmersFoundInPublicationsThatAreNotLinked": notMatchedStemmer,
         "percentageReuseVoorzitters": percentageReuseVoorzitters,
         "voorzittersFoundInPublications": voorzittersInPublications,
+        "voorzittersFoundInPublicationsThatAreLinked": matchedVoorzitters,
         "voorzittersFoundInPublicationsThatAreNotLinked": notMatchedVoorzitters,
         "percentageReuseSecretarissen": percentageReuseSecretarissen,
-        "secretarissenFoundInPublications": mandatarissenInPublications,
-        "secretarissenFoundInPublicationsThatAreNotLinked": notMatchedSecretarissen
+        "secretarissenFoundInPublications": secretarissenInPublications,
+        "secretarissenFoundInPublicationsThatAreLinked": matchedSecretarissen,
+        "secretarissenFoundInPublicationsThatAreNotLinked": notMatchedSecretarissen,
+        "foundVoorzitterInAanwezigen": foundVoorzitterInAanwezigen,
+        "foundSecretarisInAanwezigen": foundSecretarisInAanwezigen,
+        "foundVoorzitterThatIsAlsoAanwezigAsMandataris": foundVoorzitterThatIsAlsoAanwezigAsMandataris
       });
     } catch (e) {
       console.log("jup")
@@ -569,9 +676,9 @@ function getRelevantPublicationsWithinTimeInterval(publications, proxy, start, e
     try {
       console.log("Filtering on relevant publications");
 
-      const relevantPublications = [];
+      const relevantPublications = {};
       for (let p of publications) {
-        console.log("Checking for publication whether in time interval");
+        console.log("Checking for publication " + p + " whether in time interval");
         const bindingsStream = await engine.queryBindings(`
         PREFIX prov: <http://www.w3.org/ns/prov#>
   PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -586,16 +693,23 @@ function getRelevantPublicationsWithinTimeInterval(publications, proxy, start, e
   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
   SELECT DISTINCT ?bestuursclassificatielabel
-  WHERE {
-      # Get bestuursclassificatie (gemeenteraad, college...)
+  WHERE {    
+    # Get start of Zitting
+    ?a2 prov:startedAtTime ?startZitting .
+
+    # Get bestuursclassificatie (gemeenteraad, college...)
+    OPTIONAL {
+      ?a1 besluit:isGehoudenDoor ?bestuursorgaanInTijd .
       OPTIONAL {
-        ?a1 besluit:isGehoudenDoor ?bestuursorgaanInTijd .
-        ?bestuursorgaanInTijd skos:prefLabel ?bestuursclassificatie.
+          ?bestuursorgaanInTijd skos:prefLabel ?bestuursorgaanInTijdClassificatie.
       }
-      BIND(if(bound(?bestuursclassificatie) = "true"^^xsd:boolean, lcase(str(?bestuursclassificatie)), "onbekend") AS ?bestuursclassificatielabel)
     
-      # Get start of Zitting
-      ?a2 prov:startedAtTime ?startZitting .
+      OPTIONAL {
+        ?bestuursorgaanInTijd mandaat:isTijdspecialisatieVan ?bestuursorgaan .
+        ?bestuursorgaan skos:prefLabel ?bestuursorgaanClassificatie .
+      }
+    }
+    BIND(if(bound(?bestuursorgaanInTijdClassificatie) = "true"^^xsd:boolean, lcase(str(?bestuursorgaanInTijdClassificatie)), if(bound(?bestuursorgaanClassificatie) = "true"^^xsd:boolean, lcase(str(?bestuursorgaanClassificatie)),  "onbekend")) AS ?bestuursclassificatielabel)
 
     BIND (if(?startZitting > "${start}"^^xsd:dateTime && ?startZitting < "${eind}"^^xsd:dateTime, "true"^^xsd:boolean, "false"^^xsd:boolean) AS ?withinTimeInterval)
 
@@ -605,7 +719,7 @@ function getRelevantPublicationsWithinTimeInterval(publications, proxy, start, e
           lenient: true,
           httpProxyHandler: new ProxyHandlerStatic(proxy),
           sources: [ p ],
-          httpRetryCount: 2,
+          httpRetryCount: NUMBER_OF_RETRY_COUNTS,
           httpRetryDelay: 2000,
           httpRetryOnServerError: false
         });
@@ -620,7 +734,10 @@ function getRelevantPublicationsWithinTimeInterval(publications, proxy, start, e
           relevantPublications[bestuursclassificatielabel].push(p);
         }
       }
-      resolve(relevantPublications);
+      if (Object.keys(relevantPublications).length === 0) resolve({
+        "onbekend": []
+      })
+      else resolve(relevantPublications);
     } catch (e) {
       reject(e);
     }
@@ -631,9 +748,11 @@ $(document).ready(async () => {
   const link = document.getElementById('export').addEventListener('click', handleExportToExcel);
   let interestedMunicipalityLabel;
 
-  mandatarissenList = await fetchMandatarissenThatAreNotVoorzitterOrSecretaris();
-  secretarissenList = await fetchMandatarissenWithRole("secretaris");
+  mandatarissenList = await fetchMandatarissenThatAreNotVoorzitter();
   voorzittersList = await fetchMandatarissenWithRole("voorzitter");
+  functionarissenList = await fetchFunctionarissen();
+  const districtburgemeesters = await fetchMandatarissenWithRole("districtsburgemeester");
+  voorzittersList = [...voorzittersList, ...districtburgemeesters];
   
   const drp_municipalitiesList = document.getElementById("municipalitiesList");
   drp_municipalitiesList.onchange = function() {
@@ -675,7 +794,7 @@ async function start_loading(municipalities, interestedMunicipalityLabel, bluepr
       "entrypoint": specificPublication
     }
     document.getElementById('processing_now').innerHTML = "Fetching this specific publication...";
-    await processMunicipality([m], m, blueprintOfAP);
+    await processMunicipality([m], m, blueprintOfAP, startZitting, eindZitting);
     document.getElementById("progressbar").value += (100/[m].length);
   }
   // Specific municipality
@@ -702,7 +821,7 @@ async function start_loading(municipalities, interestedMunicipalityLabel, bluepr
     for (let start = 0; start < municipalities_sliced.length; start+= NUMBER_OF_MUNICIPALITIES_PER_BATCH) {
       //document.getElementById('processing_now').innerHTML = "Publications found for" + m.municipalityLabel + ": ";
       const end = start + NUMBER_OF_MUNICIPALITIES_PER_BATCH > municipalities_sliced.length ? municipalities_sliced.length : start + NUMBER_OF_MUNICIPALITIES_PER_BATCH;
-      
+      console.log(end);
       await Promise.all(municipalities_sliced.slice(start, end).map((m) => processMunicipality(municipalities_sliced, m, blueprintOfAP, startZitting, eindZitting)));
 
       //await processMunicipality(municipalities_sliced, m, blueprintOfAP, startZitting, eindZitting);
@@ -738,10 +857,12 @@ async function processMunicipality(municipalities, m, blueprintOfAP, startZittin
   let publicationsPerBestuursorgaan;
   // Filter publications on start and end time of Zitting
   if (startZitting != "" && eindZitting != "") {
-    publicationsPerBestuursorgaan = await getRelevantPublicationsWithinTimeInterval(publicationsFromSourceWithoutSessionId, proxyForMunicipality, startZitting, eindZitting);
+    // publicationsPerBestuursorgaan = await getRelevantPublicationsWithinTimeInterval(publicationsFromSourceWithoutSessionId, proxyForMunicipality, startZitting, eindZitting);
+    publicationsPerBestuursorgaan = await getRelevantPublicationsWithinTimeInterval(publicationsFromSource, proxyForMunicipality, startZitting, eindZitting);
   } else {
     publicationsPerBestuursorgaan = {
-      "onbekend": publicationsFromSourceWithoutSessionId
+      "onbekend": publicationsFromSource
+      // "onbekend": publicationsFromSourceWithoutSessionId
     };
   }
   
@@ -759,6 +880,7 @@ async function processMunicipality(municipalities, m, blueprintOfAP, startZittin
     const report = {
       "Gemeente": m.municipalityLabel,
       "Bestuursorgaan": bestuursorgaan,
+      "Example publication": publicationsFromSourceWithoutSessionId.length ? publicationsFromSourceWithoutSessionId.toString() : "",
       "Startdatum": startZitting,
       "Einddatum": eindZitting,
       "URL LBLOD-omgeving": m.entrypoint,
@@ -766,7 +888,7 @@ async function processMunicipality(municipalities, m, blueprintOfAP, startZittin
       "Number of publications at the source: ": publicationsFromSourceWithoutSessionId.length,
       "Number of publications not yet harvested": publicationsNotYetCollected.length,
       //"Number of publications that have been archived (harvested but not found at source)": publicationsHarvestedButNotFoundAtSource.length,
-      "Publications not yet collected": publicationsNotYetCollected,
+      "Publications not yet harvested": publicationsNotYetCollected,
       //"Publications not available anymore at source:": publicationsHarvestedButNotFoundAtSource
     };
     
@@ -779,9 +901,16 @@ async function processMunicipality(municipalities, m, blueprintOfAP, startZittin
     for (const b of blueprintOfAP) {
       let label = b.name;
       if (b.niveau != "") label += " (" + b.niveau + ")";
-      if (Object.keys(blueprintOfMunicipality).includes(b.uri)) report[label] = blueprintOfMunicipality[b.uri]; // count
-      else report[label] = "";
+      let match = blueprintOfMunicipality.filter((a) => a.classUri === b.classUri && a.propertyUri === b.propertyUri);
+      console.log(match);
+      report[label] = match.length ? match[0]["count"] : "";
     }
+    // for (const b of blueprintOfAP) {
+    //   let label = b.name;
+    //   if (b.niveau != "") label += " (" + b.niveau + ")";
+    //   if (Object.keys(blueprintOfMunicipality).includes(b.uri)) report[label] = blueprintOfMunicipality[b.uri]; // count
+    //   else report[label] = "";
+    // }
 
     // Check level-2 score. Re-use of mandataris url from mandatadatabank.
     const numberForMandaten = publicationsFromSourceWithoutSessionId.length < NUMBER_OF_PUBLICATIONS_FOR_MANDATARIS ? publicationsFromSourceWithoutSessionId.length : NUMBER_OF_PUBLICATIONS_FOR_MANDATARIS;
@@ -791,19 +920,28 @@ async function processMunicipality(municipalities, m, blueprintOfAP, startZittin
 
     // Add the score to the report
 
-    report["Re-use mandatarissen %"] = level2result.percentageReuseMandatarissen;
-    report["Number of found mandatarissen"] = level2result.mandatarissenFoundInPublications.length;
-    //report["Mandatarissen found"] = level2result.mandatarissenFoundInPublications;
-    report["Number of mandatarissen not linked"] = level2result.mandatarissenFoundInPublicationsThatAreNotLinked.length;
+    report["Re-use aanwezigen %"] = level2result.aanwezigenFoundInPublicationsThatAreLinked.length != 0 ? level2result.aanwezigenFoundInPublicationsThatAreLinked.length / level2result.aanwezigenFoundInPublications.length * 100 : 0;
+    report["Number of found aanwezigen"] = level2result.aanwezigenFoundInPublications.length;
+    //report["aanwezigen found"] = level2result.aanwezigenFoundInPublications;
+    report["Number of aanwezigen not linked"] = level2result.aanwezigenFoundInPublicationsThatAreNotLinked.length;
+
+    report["Re-use stemmers %"] = level2result.stemmersFoundInPublicationsThatAreLinked.length != 0 ? level2result.stemmersFoundInPublicationsThatAreLinked.length / level2result.stemmersFoundInPublications.length * 100 : 0;
+    report["Number of found stemmers"] = level2result.stemmersFoundInPublications.length;
+    //report["aanwezigen found"] = level2result.stemmersFoundInPublications;
+    report["Number of stemmers not linked"] = level2result.stemmersFoundInPublicationsThatAreNotLinked.length;
     
-    report["Re-use voorzitters %"] = level2result.percentageReuseVoorzitters;
+    report["Re-use voorzitters %"] =  level2result.voorzittersFoundInPublicationsThatAreLinked.length != 0 ? level2result.voorzittersFoundInPublicationsThatAreLinked.length / level2result.voorzittersFoundInPublications.length * 100 : 0;
     report["Number of found voorzitters"] = level2result.voorzittersFoundInPublications.length;
     report["Number of voorzitters not linked"] = level2result.voorzittersFoundInPublicationsThatAreNotLinked.length;
     
-    report["Re-use secretarissen %"] = level2result.percentageReuseSecretarissen;
+    report["Re-use secretarissen %"] = level2result.secretarissenFoundInPublicationsThatAreLinked.length != 0 ? level2result.secretarissenFoundInPublicationsThatAreLinked.length / level2result.secretarissenFoundInPublications.length * 100 : 0;
     report["Number of found secretarissen"] = level2result.secretarissenFoundInPublications.length;
     report["Number of secretarissen not linked"] = level2result.secretarissenFoundInPublicationsThatAreNotLinked.length;
     
+    report["foundVoorzitterInAanwezigen"] = level2result.foundVoorzitterInAanwezigen;
+    report["foundSecretarisInAanwezigen"] = level2result.foundSecretarisInAanwezigen;
+    report["foundVoorzitterThatIsAlsoAanwezigAsMandataris"] = level2result.foundVoorzitterThatIsAlsoAanwezigAsMandataris;
+        
     data.push(report);
     // 3. Check if publication is already harvested
     //await sleep(10000);
