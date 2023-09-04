@@ -1,9 +1,11 @@
 import { ProxyHandlerStatic } from "@comunica/actor-http-proxy";
 import zipcelx from "zipcelx";
+import * as XLSX from 'xlsx/xlsx.mjs';
+
 // import { ProxyHandlerStatic } from "https://cdn.skypack.dev/@comunica/actor-http-proxy@2.6.9";
 // import zipcelx from "https://cdn.skypack.dev/zipcelx@1.6.2";
 //const proxy = "https://proxy.linkeddatafragments.org/";
-const proxy = "http://localhost:8080/";
+const proxy = "http://localhost:8085/";
 
 const engine = new Comunica.QueryEngine();
 
@@ -12,7 +14,7 @@ const NUMBER_OF_PUBLICATIONS_FOR_MANDATARIS = 100;
 const NUMBER_OF_MUNICIPALITIES_PER_BATCH = 1;
 const NUMBER_OF_RETRY_COUNTS = 2;
 
-const data = [];
+let data = [];
 let mandatarissenList = [];
 let voorzittersList = [];
 let functionarissenList = [];
@@ -199,7 +201,7 @@ function getCollectedPublications(municipalityLabel) {
                     ]
                     ]
 
-            FILTER (?taskIndex = "0")
+            FILTER (?taskIndex = "1")
             BIND (uri(REPLACE(str(?url), ";jsessionid=[a-zA-Z;0-9]*", "", "i")) as ?cleanUrl)
           }
           `, {
@@ -260,8 +262,8 @@ GROUP BY ?classUri
           sources: publications,
           lenient: true,
           httpProxyHandler: new ProxyHandlerStatic(proxy),
-          httpRetryCount: 0,
-          // httpRetryDelay: 2000,
+          httpRetryCount: NUMBER_OF_RETRY_COUNTS,
+          httpRetryDelay: 2000,
           httpRetryOnServerError: false
         }).then(function (bindingsStream) {
           bindingsStream.on('data', function (data) {
@@ -745,6 +747,10 @@ function getRelevantPublicationsWithinTimeInterval(publications, proxy, start, e
 }
 
 $(document).ready(async () => {
+  // Upload previous export to start from
+  const prevExportElement = document.getElementById("prevExport");
+  prevExportElement.addEventListener("change", handleFiles, false);
+
   const link = document.getElementById('export').addEventListener('click', handleExportToExcel);
   let interestedMunicipalityLabel;
 
@@ -776,10 +782,26 @@ $(document).ready(async () => {
   const btn_start_processing = document.getElementById('btn_start_processing').addEventListener('click', () => start_loading(municipalities, interestedMunicipalityLabel, blueprintOfAP), false);
 });
 
-
+function handleFiles(e) {
+  console.log("handle file")
+  const selectedFile = e.target.files[0];
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    let result = event.target.result;
+    let workbook = XLSX.read(result, {
+      type: "binary"
+    });
+    workbook.SheetNames.forEach(sheet => {
+      let rowObject = XLSX.utils.sheet_to_row_object_array(workbook.Sheets[sheet]);
+      data = rowObject;
+    });
+  };
+  reader.readAsBinaryString(selectedFile);
+}
 
 async function start_loading(municipalities, interestedMunicipalityLabel, blueprintOfAP) {
   document.getElementById("progressbar").value = 0;
+
   const specificPublication = document.getElementById("specificPublication").value;
   let startZitting = document.getElementById("startZitting").value;
   let eindZitting = document.getElementById("eindZitting").value;
@@ -816,6 +838,19 @@ async function start_loading(municipalities, interestedMunicipalityLabel, bluepr
 
     if (typeof start_at !== "undefined") {
       municipalities_sliced = municipalities.slice(start_at-1);
+    }
+    if (data.length > 0) {
+      municipalities_sliced = [];
+      for (let m of municipalities) {
+        let alreadyProcessed = false;
+        for (let p of data) {
+          // The last municipality must be refetched
+          if (m.municipalityLabel != data[data.length -1].Gemeente) {
+            if (m.municipalityLabel === p.Gemeente) alreadyProcessed = true;
+          }
+        }
+        if (!alreadyProcessed) municipalities_sliced.push(m);
+      }
     }
 
     for (let start = 0; start < municipalities_sliced.length; start+= NUMBER_OF_MUNICIPALITIES_PER_BATCH) {
