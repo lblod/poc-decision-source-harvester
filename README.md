@@ -45,3 +45,9 @@ Hot-reloading with webpack-dev-server is implemented. You can run using the foll
 ```
 npm run start:dev
 ```
+
+# Link traversal client
+
+The browser-build version of Comunica link traversal must be added as Javascript file in the index.html.
+If you want to adapt to another Comunica config, build an engine with your config + webpack to a browser js:
+https://github.com/brechtvdv/comunica-feature-link-traversal/commit/c42d57e6d9328de962de66f28413660454319efe
