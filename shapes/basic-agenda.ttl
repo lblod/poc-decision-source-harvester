@@ -1,0 +1,102 @@
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix qb:      <http://purl.org/linked-data/cube#> .
+@prefix lblodBesluit:	<http://lblod.data.gift/vocabularies/besluit/> .
+
+<https://data.vlaanderen.be/shacl/besluit-publicatie#DocumentShape>
+	a sh:NodeShape ;
+	sh:targetClass <http://xmlns.com/foaf/0.1/Document> ;
+  	sh:property [
+		sh:name "documenttype" ;
+		sh:description "Type van het besluit. Concept uit een van volgende concept schemes: https://data.vlaanderen.be/id/conceptscheme/BesluitType https://data.vlaanderen.be/id/conceptscheme/BesluitDocumentType" ;
+		sh:path <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ;
+		sh:minCount 1 ;
+	] .
+
+<https://data.vlaanderen.be/shacl/besluit-publicatie#AgendapuntShape>
+	a sh:NodeShape ;
+	sh:targetClass <http://data.vlaanderen.be/ns/besluit#Agendapunt> ;
+	sh:property [
+		sh:name "aangebrachtNa" ;
+		sh:description "Het agendapunt dat op de agenda direct dit agendapunt voorafging." ;
+		sh:path <http://data.vlaanderen.be/ns/besluit#aangebrachtNa> ;
+		sh:class <http://data.vlaanderen.be/ns/besluit#Agendapunt> ;
+        lblodBesluit:maturiteitsniveau "Niveau 1" ;
+        sh:minCount 0 ;
+		sh:maxCount 1 ;
+	] ;
+	sh:property [
+		sh:name "beschrijving" ;
+		sh:description "Korte beschrijving van het agendapunt." ;
+		sh:path <http://purl.org/dc/terms/description> ;
+		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
+        lblodBesluit:maturiteitsniveau "Niveau 1" ;
+        sh:minCount 0 ;
+		sh:maxCount 1 ;
+	] ;
+	sh:property [
+		sh:name "geplandOpenbaar" ;
+		sh:description "Geeft aan of het agendapunt al dan niet bedoeld is om openbaar te bespreken." ;
+		sh:path <http://data.vlaanderen.be/ns/besluit#geplandOpenbaar> ;
+		sh:datatype <http://www.w3.org/2001/XMLSchema#boolean> ;
+        lblodBesluit:maturiteitsniveau "Niveau 1" ;
+		sh:minCount 1 ;
+		sh:maxCount 1 ;
+	] ;
+	sh:property [
+		sh:name "titel" ;
+		sh:description "De naam van het agendapunt." ;
+		sh:path <http://purl.org/dc/terms/title> ;
+		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
+        lblodBesluit:maturiteitsniveau "Niveau 1" ;
+		sh:minCount 1 ;
+		sh:maxCount 1 ;
+	] ;
+	sh:property [
+		sh:name "type" ;
+		sh:description "Type van het agendapunt." ;
+		sh:path <http://data.vlaanderen.be/ns/besluit#Agendapunt.type> ;
+		sh:class <http://www.w3.org/2004/02/skos/core#Concept> ;
+		sh:minCount 1 ;
+	] ;
+	sh:closed false .
+    
+<https://data.vlaanderen.be/shacl/besluit-publicatie#ZittingShape>
+	a sh:NodeShape ;
+	sh:targetClass <http://data.vlaanderen.be/ns/besluit#Zitting> ;
+  	sh:property [
+		sh:name "behandelt" ;
+		sh:description "Een formeel vastgelegd agendapunt van de zitting." ;
+		sh:path <http://data.vlaanderen.be/ns/besluit#behandelt> ;
+		sh:class <http://data.vlaanderen.be/ns/besluit#Agendapunt> ;
+        lblodBesluit:maturiteitsniveau "Niveau 1" ;
+		sh:minCount 1 ;
+	] ;
+	sh:property [
+		sh:name "geplandeStart" ;
+		sh:description "Het tijdstip waarop de zitting gepland is om te beginnen." ;
+		sh:path <http://data.vlaanderen.be/ns/besluit#geplandeStart> ;
+		sh:datatype <http://www.w3.org/2001/XMLSchema#dateTime> ;
+        lblodBesluit:maturiteitsniveau "Niveau 1" ;
+		sh:minCount 1 ;
+		sh:maxCount 1 ;
+	] ;
+  	sh:property [
+		sh:name "isGehoudenDoor" ;
+		sh:description "Duidt aan door welk orgaan de zitting is gehouden." ;
+		sh:path <http://data.vlaanderen.be/ns/besluit#isGehoudenDoor> ;
+		sh:class <http://data.vlaanderen.be/ns/besluit#Bestuursorgaan> ;
+        lblodBesluit:maturiteitsniveau "Niveau 1" ;
+		sh:minCount 1 ;
+		sh:maxCount 1 ;
+	] ;
+    sh:property [
+		sh:name "locatie" ;
+		lblodBesluit:maturiteitsniveau "Niveau 1" ;
+		sh:description "Locatie waar de zitting plaatsvindt. Doorgaans is dit een zaal in een gebouw." ;
+		sh:path <http://www.w3.org/ns/prov#atLocation> ;
+		sh:class <http://www.w3.org/ns/prov#Location> ;
+        lblodBesluit:maturiteitsniveau "Niveau 1" ;
+        sh:minCount 0 ;
+		sh:maxCount 1 ;
+	] ;
+  	sh:closed false .
