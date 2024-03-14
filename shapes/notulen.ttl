@@ -75,14 +75,14 @@
 		sh:maxCount 1 ;
 	] ;
     sh:property [
-		sh:name "heeftUittreksel ;
+		sh:name "heeftUittreksel" ;
 		sh:description "De formele notulen van de zitting." ;
 		sh:path <http://data.vlaanderen.be/ns/besluit#heeftUittreksel> ;
 		sh:class <http://xmlns.com/foaf/0.1/Document> ;
         sh:minCount 0 ;
 	] ;
      sh:property [
-		sh:name "heeftBesluitenlijst ;
+		sh:name "heeftBesluitenlijst" ;
 		sh:description "De formele notulen van de zitting." ;
 		sh:path <http://data.vlaanderen.be/ns/besluit#heeftBesluitenlijst> ;
 		sh:class <http://xmlns.com/foaf/0.1/Document> ;
