@@ -1,5 +1,6 @@
 @prefix sh:      <http://www.w3.org/ns/shacl#> .
 @prefix qb:      <http://purl.org/linked-data/cube#> .
+@prefix lblodBesluit:	<http://lblod.data.gift/vocabularies/besluit/> .
 
 <https://data.vlaanderen.be/shacl/besluit-publicatie#DocumentShape>
 	a sh:NodeShape ;
