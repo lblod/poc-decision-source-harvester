@@ -11,7 +11,15 @@
 		sh:description "Type van het besluit. Concept uit een van volgende concept schemes: https://data.vlaanderen.be/id/conceptscheme/BesluitType https://data.vlaanderen.be/id/conceptscheme/BesluitDocumentType" ;
 		sh:path <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ;
 		sh:minCount 1 ;
-		ex:usageNote '728 (TODO)'
+		ex:usageNote '1'
+	] ;
+    sh:property [
+		sh:name "publicatiedatum" ;
+		sh:description "De officiële publicatiedatum van het besluit." ;
+		sh:path <http://data.europa.eu/eli/ontology#date_publication> ;
+		sh:datatype <http://www.w3.org/2001/XMLSchema#date> ;
+		sh:maxCount 1 ;
+		ex:usageNote '2'
 	] .
 
 <https://data.vlaanderen.be/shacl/besluit-publicatie#AgendapuntShape>
@@ -25,7 +33,7 @@
         lblodBesluit:maturiteitsniveau "Niveau 1" ;
         sh:minCount 0 ;
 		sh:maxCount 1 ;
-		ex:usageNote 'TODO'
+		ex:usageNote '2'
 	] ;
 	sh:property [
 		sh:name "beschrijving" ;
@@ -35,7 +43,7 @@
         lblodBesluit:maturiteitsniveau "Niveau 1" ;
         sh:minCount 0 ;
 		sh:maxCount 1 ;
-		ex:usageNote '938'
+		ex:usageNote '3'
 	] ;
 	sh:property [
 		sh:name "geplandOpenbaar" ;
@@ -45,7 +53,7 @@
         lblodBesluit:maturiteitsniveau "Niveau 1" ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '950'
+		ex:usageNote '4'
 	] ;
 	sh:property [
 		sh:name "titel" ;
@@ -55,7 +63,7 @@
         lblodBesluit:maturiteitsniveau "Niveau 1" ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '909'
+		ex:usageNote '5'
 	] ;
 	sh:property [
 		sh:name "type" ;
@@ -63,7 +71,7 @@
 		sh:path <http://data.vlaanderen.be/ns/besluit#Agendapunt.type> ;
 		sh:class <http://www.w3.org/2004/02/skos/core#Concept> ;
 		sh:minCount 1 ;
-		ex:usageNote '920'
+		ex:usageNote '6'
 	] ;
 	sh:closed false .
     
@@ -77,7 +85,7 @@
 		sh:class <http://data.vlaanderen.be/ns/besluit#Agendapunt> ;
         lblodBesluit:maturiteitsniveau "Niveau 1" ;
 		sh:minCount 1 ;
-		ex:usageNote '976'
+		ex:usageNote '7'
 	] ;
 	sh:property [
 		sh:name "geplandeStart" ;
@@ -87,7 +95,7 @@
         lblodBesluit:maturiteitsniveau "Niveau 1" ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '784'
+		ex:usageNote '8'
 	] ;
   	sh:property [
 		sh:name "isGehoudenDoor" ;
@@ -97,7 +105,7 @@
         lblodBesluit:maturiteitsniveau "Niveau 1" ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '752'
+		ex:usageNote '9'
 	] ;
     sh:property [
 		sh:name "locatie" ;
@@ -108,6 +116,15 @@
         lblodBesluit:maturiteitsniveau "Niveau 1" ;
         sh:minCount 0 ;
 		sh:maxCount 1 ;
-		ex:usageNote 'TODO'
+		ex:usageNote '10'
+	] ;
+	sh:property [
+		sh:name "heeftAgenda" ;
+		sh:description "De formele agenda van de zitting." ;
+		sh:path <http://data.vlaanderen.be/ns/besluit#heeftAgenda> ;
+		sh:class <http://xmlns.com/foaf/0.1/Document> ;
+        sh:minCount 0 ;
+		sh:maxCount 1 ;
+		ex:usageNote '1'
 	] ;
   	sh:closed false .
