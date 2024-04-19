@@ -16,10 +16,25 @@
             <span property="besluit:heeftNotulen" resource="http://data.lblod.info/id/lblod/notulen/c8cee57499cab28094be7831ca6303f05ccf276e68b99b88f14233d22ee4f554"
             typeof="foaf:Document https://data.vlaanderen.be/doc/concept/BesluitDocumentType/8e791b27-7600-4577-b24e-c7c29e0eb773" id="7"></span>
             <h1>Besluitenlijst van 
-                <span
+                <div
                 property="http://data.vlaanderen.be/ns/besluit#isGehoudenDoor"
                 resource="http://data.lblod.info/id/bestuursorganen/fa8ab31cb822a4105f6aa376fb89c7de28021fc05de00ac2730bdfeb5d8c6494"
-                typeof="besluit:Bestuursorgaan" id="11">Gemeenteraad Kortenberg</span>,
+                typeof="besluit:Bestuursorgaan" id="11">Gemeenteraad Kortenberg
+                    <div property="generiek:isTijdspecialisatieVan"
+                    resource="http://data.lblod.info/id/bestuursorganen/2fae219ddea1dca82b2f493edd14187df83e7e2ab559ebd48aad73ae48c6157d"
+                    typeof="besluit:Bestuursorgaan" id="33">
+                        <span property="org:classification" resource="http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/5ab0e9b8a3b2ca7c5e000005" id="34"></span>
+                        <span property="skos:prefLabel" id="35">Gemeenteraad Kortenberg</span>
+                        <div property="besluit:bestuurt" resource="http://data.lblod.info/id/bestuurseenheden/e580b3ee33ff28d93f803e7f70cdb1d99bf6ae9d56b0f630fd7b6837adf8cd4c" typeof="besluit:Bestuurseenheid" id="36">
+                            <span property="org:classification" resource="http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/5ab0e9b8a3b2ca7c5e000001" id="15"></span>
+                            <span property="skos:prefLabel" content="Kortenberg" id="37"></span>
+                            <div property="besluit:werkingsgebied" resource="http://data.lblod.info/id/werkingsgebieden/0d89527de8beb0b0799fb935e1f2a7c42ef4df4d9c064b709a1ddfca823b3d97" typeof="prov:Location" id="38">
+                                <span property="rdfs:label" content="Kortenberg" id="39"></span>
+                                <span property="http://mu.semte.ch/vocabularies/ext/werkingsgebiedNiveau" content="Gemeente" id="40"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
                 zitting op 
                 <span property="prov:startedAtTime"
                 content="2024-01-08T19:02:31.586Z"

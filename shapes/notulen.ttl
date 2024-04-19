@@ -563,19 +563,23 @@
 	] ;
  	sh:closed false .
 
+<https://data.vlaanderen.be/shacl/mandatendatabank#Bestuursorgaan(inbestuursperiode)Shape-ea7c3478-b4d1-48ce-bdef-270408772d1e>
+	a sh:NodeShape ;
+	sh:targetClass <http://data.vlaanderen.be/ns/besluit#Bestuursorgaan> ;
+	sh:property [
+		sh:name "isTijdspecialisatieVan" ;
+		sh:description "Duidt de bronentiteit aan waarvan deze entiteit een tijdsgebonden specialisatie is. De specialisatie stelt de bron voor gedurende een bepaalde periode." ;
+		sh:path [ sh:alternativePath ( <https://data.vlaanderen.be/ns/generiek#isTijdspecialisatieVan> <https://data.vlaanderen.be/ns/mandaat#isTijdspecialisatieVan> ) ] ;
+		sh:class <http://data.vlaanderen.be/ns/besluit#Bestuursorgaan> ;
+		sh:minCount 1 ;
+		sh:maxCount 1 ;
+		ex:usageNote '57'
+	] ;
+	sh:closed false .
 
 <https://data.vlaanderen.be/shacl/besluit-publicatie#BestuursorgaanShape>
 	a sh:NodeShape ;
 	sh:targetClass <http://data.vlaanderen.be/ns/besluit#Bestuursorgaan> ;
-	sh:property [
-		sh:name "bestuurt" ;
-		lblodBesluit:maturiteitsniveau "Bonusniveau" ;
-		sh:description "De bestuurseenheid die door het orgaan bestuurd wordt." ;
-		sh:path <http://data.vlaanderen.be/ns/besluit#bestuurt> ;
-		sh:class <http://data.vlaanderen.be/ns/besluit#Bestuurseenheid> ;
-		sh:minCount 1 ;
-		sh:maxCount 1 ;
-	] ;
 	sh:property [
 		sh:name "classificatie" ;
 		lblodBesluit:maturiteitsniveau "Bonusniveau" ;
@@ -584,15 +588,27 @@
 		sh:class <http://www.w3.org/2004/02/skos/core#Concept> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
+		ex:usageNote '58'
 	] ;
 	sh:property [
 		sh:name "naam" ;
 		lblodBesluit:maturiteitsniveau "Bonusniveau" ;
-		sh:description "Naam van de eenheid." ;
+		sh:description "Naam van de bestuursorgaan." ;
 		sh:path <http://www.w3.org/2004/02/skos/core#prefLabel> ;
-		sh:datatype <http://www.w3.org/1999/02/22-rdf-syntax-ns#langString> ;
+		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
+		ex:usageNote '59'
+	] ;
+	sh:property [
+		sh:name "bestuurt" ;
+		lblodBesluit:maturiteitsniveau "Bonusniveau" ;
+		sh:description "De bestuurseenheid die door het orgaan bestuurd wordt." ;
+		sh:path <http://data.vlaanderen.be/ns/besluit#bestuurt> ;
+		sh:class <http://data.vlaanderen.be/ns/besluit#Bestuurseenheid> ;
+		sh:minCount 1 ;
+		sh:maxCount 1 ;
+		ex:usageNote '60'
 	] ;
 	sh:closed false .
 
@@ -606,15 +622,17 @@
 		sh:class <http://www.w3.org/2004/02/skos/core#Concept> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
+		ex:usageNote '61'
 	] ;
 	sh:property [
 		sh:name "naam" ;
 		lblodBesluit:maturiteitsniveau "Bonusniveau" ;
 		sh:description "Naam van de bestuurseenheid." ;
 		sh:path <http://www.w3.org/2004/02/skos/core#prefLabel> ;
-		sh:datatype <http://www.w3.org/1999/02/22-rdf-syntax-ns#langString> ;
+		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
+		ex:usageNote '62'
 	] ;
 	sh:property [
 		sh:name "werkingsgebied" ;
@@ -623,5 +641,30 @@
 		sh:class <http://www.w3.org/ns/prov#Location> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
+		ex:usageNote '63'
+	] ;
+	sh:closed false .
+
+<https://data.vlaanderen.be/shacl/besluit-publicatie#WerkingsgebiedShape>
+	a sh:NodeShape ;
+	sh:targetClass <http://www.w3.org/ns/prov#Location> ;
+	sh:property [
+		sh:name "naam" ;
+		lblodBesluit:maturiteitsniveau "Bonusniveau" ;
+		sh:description "Naam van het werkingsgebied." ;
+		sh:path <http://www.w3.org/2000/01/rdf-schema#label> ;
+		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
+		sh:minCount 1 ;
+		sh:maxCount 1 ;
+		ex:usageNote '64'
+	] ;
+	sh:property [
+		sh:name "werkingsgebiedNiveau" ;
+		sh:description "Niveau (gemeente, provincie, gewest...) van het gebied waarbinnen de bestuurseenheid bepaalde verantwoordelijkheden heeft waarbinnen het bestuurshandelingen kan stellen." ;
+		sh:path <http://mu.semte.ch/vocabularies/ext/werkingsgebiedNiveau> ;
+		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
+		sh:minCount 0 ;
+		sh:maxCount 1 ;
+		ex:usageNote '65'
 	] ;
 	sh:closed false .
