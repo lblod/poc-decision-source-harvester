@@ -172,6 +172,20 @@
 		ex:usageNote '16'
 	] ;
 	sh:property [
+		sh:name "heeftOntwerpbesluit" ;
+		sh:description "Een (mogelijks nog aan te vullen of aan te passen) ontwerp voor het besluit dat uit dit agendapunt zou voortkomen." ;
+		sh:path <http://data.vlaanderen.be/ns/besluit#heeftOntwerpbesluit> ;
+		sh:class <http://xmlns.com/foaf/0.1/Document> ;
+		ex:usageNote '42'
+	] ;
+	sh:property [
+		sh:name "refereertAan" ;
+		sh:description "Een ander agendapunt waarnaar verwezen wordt vanuit dit agendapunt." ;
+		sh:path <http://purl.org/dc/terms/references> ;
+		sh:class <http://data.vlaanderen.be/ns/besluit#Agendapunt> ;
+		ex:usageNote '43'
+	] ;
+	sh:property [
 		sh:name "beschrijving" ;
         lblodBesluit:maturiteitsniveau "Niveau 1" ;
 		sh:description "Korte beschrijving van het agendapunt." ;
