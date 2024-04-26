@@ -577,7 +577,7 @@
 	] ;
  	sh:closed false .
 
-<https://data.vlaanderen.be/shacl/mandatendatabank#Bestuursorgaan(inbestuursperiode)Shape-ea7c3478-b4d1-48ce-bdef-270408772d1e>
+<https://data.vlaanderen.be/shacl/mandatendatabank#Bestuursorgaan(inbestuursperiode)Shape>
 	a sh:NodeShape ;
 	sh:targetClass <http://data.vlaanderen.be/ns/besluit#Bestuursorgaan> ;
 	sh:property [
