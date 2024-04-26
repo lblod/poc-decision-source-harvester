@@ -71,7 +71,7 @@
 		sh:class <http://xmlns.com/foaf/0.1/Document> ;
         sh:minCount 0 ;
 		sh:maxCount 1 ;
-		lblodBesluit:usageNote '7'
+		lblodBesluit:usageNote '1'
 	] ;
     sh:property [
 		sh:name "heeftAgenda" ;
