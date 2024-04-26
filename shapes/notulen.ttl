@@ -10,7 +10,7 @@
 		sh:description "Type van het besluit. Concept uit een van volgende concept schemes: https://data.vlaanderen.be/id/conceptscheme/BesluitType https://data.vlaanderen.be/id/conceptscheme/BesluitDocumentType" ;
 		sh:path <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ;
 		sh:minCount 1 ;
-		ex:usageNote '1'
+		lblodBesluit:usageNote '1'
 	] ;
     sh:property [
 		sh:name "publicatiedatum" ;
@@ -18,7 +18,7 @@
 		sh:path <http://data.europa.eu/eli/ontology#date_publication> ;
 		sh:datatype <http://www.w3.org/2001/XMLSchema#date> ;
 		sh:maxCount 1 ;
-		ex:usageNote '2'
+		lblodBesluit:usageNote '2'
 	] .
 
 <https://data.vlaanderen.be/shacl/besluit-publicatie#ZittingShape>
@@ -31,7 +31,7 @@
 		sh:path <http://data.vlaanderen.be/ns/besluit#behandelt> ;
 		sh:class <http://data.vlaanderen.be/ns/besluit#Agendapunt> ;
 		sh:minCount 1 ;
-		ex:usageNote '3'
+		lblodBesluit:usageNote '3'
 	] ;
   sh:property [
 		sh:name "start" ;
@@ -41,7 +41,7 @@
 		sh:datatype <http://www.w3.org/2001/XMLSchema#dateTime> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '4'
+		lblodBesluit:usageNote '4'
 	] ;
 	sh:property [
 		sh:name "eind" ;
@@ -51,7 +51,7 @@
 		sh:datatype <http://www.w3.org/2001/XMLSchema#dateTime> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '5'
+		lblodBesluit:usageNote '5'
 	] ;
 	sh:property [
 		sh:name "geplandeStart" ;
@@ -61,7 +61,7 @@
 		sh:datatype <http://www.w3.org/2001/XMLSchema#dateTime> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '6'
+		lblodBesluit:usageNote '6'
 	] ;
     sh:property [
 		sh:name "heeftNotulen" ;
@@ -71,7 +71,7 @@
 		sh:class <http://xmlns.com/foaf/0.1/Document> ;
         sh:minCount 0 ;
 		sh:maxCount 1 ;
-		ex:usageNote '7'
+		lblodBesluit:usageNote '7'
 	] ;
     sh:property [
 		sh:name "heeftAgenda" ;
@@ -80,7 +80,7 @@
 		sh:class <http://xmlns.com/foaf/0.1/Document> ;
         sh:minCount 0 ;
 		sh:maxCount 1 ;
-		ex:usageNote '8'
+		lblodBesluit:usageNote '8'
 	] ;
     sh:property [
 		sh:name "heeftUittreksel" ;
@@ -88,7 +88,7 @@
 		sh:path <http://data.vlaanderen.be/ns/besluit#heeftUittreksel> ;
 		sh:class <http://xmlns.com/foaf/0.1/Document> ;
         sh:minCount 0 ;
-		ex:usageNote '9'
+		lblodBesluit:usageNote '9'
 	] ;
      sh:property [
 		sh:name "heeftBesluitenlijst" ;
@@ -97,7 +97,7 @@
 		sh:class <http://xmlns.com/foaf/0.1/Document> ;
         sh:minCount 0 ;
 		sh:maxCount 1 ;
-		ex:usageNote '10'
+		lblodBesluit:usageNote '10'
 	] ;
   	sh:property [
 		sh:name "isGehoudenDoor" ;
@@ -107,7 +107,7 @@
 		sh:class <http://data.vlaanderen.be/ns/besluit#Bestuursorgaan> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '11'
+		lblodBesluit:usageNote '11'
 	] ;
     sh:property [
 		sh:name "locatie" ;
@@ -117,7 +117,7 @@
 		sh:class <http://www.w3.org/ns/prov#Location> ;
         sh:minCount 0 ;
 		sh:maxCount 1 ;
-		ex:usageNote '12'
+		lblodBesluit:usageNote '12'
 	] ;
     sh:property [
         sh:name "heeftAanwezigeBijStart" ;
@@ -126,7 +126,7 @@
         sh:path <http://data.vlaanderen.be/ns/besluit#heeftAanwezigeBijStart> ;
         sh:class <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
         sh:minCount 0 ;
-		ex:usageNote '13'
+		lblodBesluit:usageNote '13'
     ] ;
     sh:property [
         sh:name "heeftAfwezigeBijStart" ;
@@ -134,7 +134,7 @@
         sh:path <http://mu.semte.ch/vocabularies/ext/heeftAfwezigeBijStart> ;
         sh:class <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
         sh:minCount 0 ;
-		ex:usageNote '14'
+		lblodBesluit:usageNote '14'
     ] ;
     sh:property [
         sh:name "heeftVoorzitter" ;
@@ -144,7 +144,7 @@
         sh:class <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
-		ex:usageNote '15'
+		lblodBesluit:usageNote '15'
     ] ;
     sh:property [
         sh:name "heeftSecretaris" ;
@@ -154,7 +154,7 @@
         sh:class <http://data.lblod.info/vocabularies/leidinggevenden/Functionaris> ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
-		ex:usageNote '16'
+		lblodBesluit:usageNote '16'
     ] ;
   	sh:closed false .
 <https://data.vlaanderen.be/shacl/besluit-publicatie#AgendapuntShape>
@@ -168,21 +168,21 @@
 		sh:class <http://data.vlaanderen.be/ns/besluit#Agendapunt> ;
         sh:minCount 0 ;
 		sh:maxCount 1 ;
-		ex:usageNote '17'
+		lblodBesluit:usageNote '17'
 	] ;
 		sh:property [
 		sh:name "heeftOntwerpbesluit" ;
 		sh:description "Een (mogelijks nog aan te vullen of aan te passen) ontwerp voor het besluit dat uit dit agendapunt zou voortkomen." ;
 		sh:path <http://data.vlaanderen.be/ns/besluit#heeftOntwerpbesluit> ;
 		sh:class <http://xmlns.com/foaf/0.1/Document> ;
-		ex:usageNote '66'
+		lblodBesluit:usageNote '66'
 	] ;
 	sh:property [
 		sh:name "refereertAan" ;
 		sh:description "Een ander agendapunt waarnaar verwezen wordt vanuit dit agendapunt." ;
 		sh:path <http://purl.org/dc/terms/references> ;
 		sh:class <http://data.vlaanderen.be/ns/besluit#Agendapunt> ;
-		ex:usageNote '67'
+		lblodBesluit:usageNote '67'
 	] ;
 	sh:property [
 		sh:name "beschrijving" ;
@@ -192,7 +192,7 @@
 		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
         sh:minCount 0 ;
 		sh:maxCount 1 ;
-		ex:usageNote '18'
+		lblodBesluit:usageNote '18'
 	] ;
 	sh:property [
 		sh:name "geplandOpenbaar" ;
@@ -202,7 +202,7 @@
 		sh:datatype <http://www.w3.org/2001/XMLSchema#boolean> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '19'
+		lblodBesluit:usageNote '19'
 	] ;
 	sh:property [
 		sh:name "titel" ;
@@ -212,7 +212,7 @@
 		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '20'
+		lblodBesluit:usageNote '20'
 	] ;
   sh:property [
 		sh:name "type" ;
@@ -220,7 +220,7 @@
 		sh:path <http://data.vlaanderen.be/ns/besluit#Agendapunt.type> ;
 		sh:class <http://www.w3.org/2004/02/skos/core#Concept> ;
 		sh:minCount 1 ;
-		ex:usageNote '21'
+		lblodBesluit:usageNote '21'
 	] ;
 	sh:closed false .
 <https://data.vlaanderen.be/shacl/besluit-publicatie#BehandelingVanAgendapuntShape>
@@ -234,7 +234,7 @@
 		sh:class <http://data.vlaanderen.be/ns/besluit#Agendapunt> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '22'
+		lblodBesluit:usageNote '22'
 	] ;
 	sh:property [
 		sh:name "gebeurtNa" ;
@@ -244,7 +244,7 @@
 		sh:class <http://data.vlaanderen.be/ns/besluit#BehandelingVanAgendapunt> ;
         sh:minCount 0 ;
 		sh:maxCount 1 ;
-		ex:usageNote '23'
+		lblodBesluit:usageNote '23'
 	] ;
 	sh:property [
 		sh:name "geeftAanleidingTot" ;
@@ -253,7 +253,7 @@
 		sh:path <http://www.w3.org/ns/prov#generated> ;
 		sh:class <http://data.vlaanderen.be/ns/besluit#Besluit> ;
         sh:minCount 0 ;
-		ex:usageNote '24'
+		lblodBesluit:usageNote '24'
 	] ;
 	sh:property [
 		sh:name "heeftStemming" ;
@@ -262,7 +262,7 @@
 		sh:path <http://data.vlaanderen.be/ns/besluit#heeftStemming> ;
 		sh:class <http://data.vlaanderen.be/ns/besluit#Stemming> ;
         sh:minCount 0 ;
-		ex:usageNote '25'
+		lblodBesluit:usageNote '25'
 	] ;
     sh:property [
 		sh:name "heeftAanwezige" ;
@@ -271,7 +271,7 @@
 		sh:path <http://data.vlaanderen.be/ns/besluit#heeftAanwezige> ;
 		sh:class <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
 		sh:minCount 1 ;
-		ex:usageNote '26'
+		lblodBesluit:usageNote '26'
 	] ;
     sh:property [
 		sh:name "heeftVoorzitter" ;
@@ -281,7 +281,7 @@
 		sh:class <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
         sh:minCount 0 ;
 		sh:maxCount 1 ;
-		ex:usageNote '27'
+		lblodBesluit:usageNote '27'
 	] ;
     sh:property [
 		sh:name "heeftSecretaris" ;
@@ -291,7 +291,7 @@
 		sh:class <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
         sh:minCount 0 ;
 		sh:maxCount 1 ;
-		ex:usageNote '28'
+		lblodBesluit:usageNote '28'
 	] ;
 	sh:property [
 		sh:name "openbaar" ;
@@ -301,7 +301,7 @@
 		sh:datatype <http://www.w3.org/2001/XMLSchema#boolean> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '29'
+		lblodBesluit:usageNote '29'
 	] ;
 	sh:closed false .
 <https://data.vlaanderen.be/shacl/besluit-publicatie#BesluitShape>
@@ -315,7 +315,7 @@
 		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
         sh:minCount 0 ;
 		sh:maxCount 1 ;
-		ex:usageNote '30'
+		lblodBesluit:usageNote '30'
 	] ;
     sh:property [
 		sh:name "inhoud" ;
@@ -325,7 +325,7 @@
 		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '31'
+		lblodBesluit:usageNote '31'
 	] ;
     sh:property [
 		sh:name "volgtUit" ;
@@ -335,7 +335,7 @@
 		sh:class <http://data.vlaanderen.be/ns/besluit#BehandelingVanAgendapunt> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '32'
+		lblodBesluit:usageNote '32'
 	] ;
 	sh:property [
 		sh:name "citeeropschrift" ;
@@ -345,7 +345,7 @@
 		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
         sh:minCount 0 ;
 		sh:maxCount 1 ;
-		ex:usageNote '33'
+		lblodBesluit:usageNote '33'
 	] ;
     sh:property [
 		sh:name "titel" ;
@@ -354,7 +354,7 @@
 		sh:path <http://data.europa.eu/eli/ontology#title> ;
 		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
 		sh:minCount 1 ;
-		ex:usageNote '34'
+		lblodBesluit:usageNote '34'
 	] ;
 	sh:property [
 		sh:name "taal" ;
@@ -365,7 +365,7 @@
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
 		qb:codeList <http://publications.europa.eu/mdr/authority/language/index.html> ;
-		ex:usageNote '35'
+		lblodBesluit:usageNote '35'
 	] ;
     sh:property [
 		sh:name "heeftDeel" ;
@@ -373,7 +373,7 @@
 		sh:path <http://data.europa.eu/eli/ontology#has_part> ;
 		sh:class <http://data.vlaanderen.be/ns/besluit#Artikel> ;
 		sh:minCount 1 ;
-		ex:usageNote '36'
+		lblodBesluit:usageNote '36'
 	] ;
     sh:property [
 		sh:name "citeert" ;
@@ -381,7 +381,7 @@
 		sh:path <http://data.europa.eu/eli/ontology#cites> ;
 		sh:class <http://data.europa.eu/eli/ontology#LegalExpression> ;
         sh:minCount 0 ;
-		ex:usageNote '37'
+		lblodBesluit:usageNote '37'
 	] ;
     sh:property [
 		sh:name "motivering" ;
@@ -391,7 +391,7 @@
 		sh:datatype <http://www.w3.org/1999/02/22-rdf-syntax-ns#langString> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '38'
+		lblodBesluit:usageNote '38'
 	] ;
 	sh:property [
 		sh:name "publicatiedatum" ;
@@ -401,7 +401,7 @@
 		sh:datatype <http://www.w3.org/2001/XMLSchema#date> ;
         sh:minCount 0 ;
 		sh:maxCount 1 ;
-		ex:usageNote '39'
+		lblodBesluit:usageNote '39'
 	] ;
     sh:property [
 		sh:name "buitenwerkingtreding" ;
@@ -410,7 +410,7 @@
 		sh:datatype <http://www.w3.org/2001/XMLSchema#date> ;
         sh:minCount 0 ;
 		sh:maxCount 1 ;
-		ex:usageNote '40'
+		lblodBesluit:usageNote '40'
 	] ;
 	sh:property [
 		sh:name "inwerkingtreding" ;
@@ -419,7 +419,7 @@
 		sh:datatype <http://www.w3.org/2001/XMLSchema#date> ;
 		sh:minCount 0 ;
 		sh:maxCount 1 ;
-		ex:usageNote '41'
+		lblodBesluit:usageNote '41'
 	] ;
 	sh:closed false .
 <https://data.vlaanderen.be/shacl/besluit-publicatie#StemmingShape>
@@ -432,7 +432,7 @@
  		sh:path <http://data.vlaanderen.be/ns/besluit#heeftOnthouder> ;
  		sh:class <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
         sh:minCount 0 ;
-		ex:usageNote '42'
+		lblodBesluit:usageNote '42'
  	] ;
  	sh:property [
  		sh:name "heeftAanwezige" ;
@@ -441,7 +441,7 @@
  		sh:path <http://data.vlaanderen.be/ns/besluit#heeftAanwezige> ;
  		sh:class <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
  		sh:minCount 1 ;
-		ex:usageNote '43'
+		lblodBesluit:usageNote '43'
  	] ;
  	sh:property [
  		sh:name "heeftStemmer" ;
@@ -450,7 +450,7 @@
  		sh:path <http://data.vlaanderen.be/ns/besluit#heeftStemmer> ;
  		sh:class <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
  		sh:minCount 0 ;
-		ex:usageNote '44'
+		lblodBesluit:usageNote '44'
  	] ;
  	sh:property [
  		sh:name "heeftTegenstander" ;
@@ -459,7 +459,7 @@
  		sh:path <http://data.vlaanderen.be/ns/besluit#heeftTegenstander> ;
  		sh:class <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
         sh:minCount 0 ;
-		ex:usageNote '45'
+		lblodBesluit:usageNote '45'
  	] ;
  	sh:property [
  		sh:name "heeftVoorstander" ;
@@ -468,7 +468,7 @@
  		sh:path <http://data.vlaanderen.be/ns/besluit#heeftVoorstander> ;
  		sh:class <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
         sh:minCount 0 ;
-		ex:usageNote '46'
+		lblodBesluit:usageNote '46'
  	] ;
  	sh:property [
  		sh:name "aantalOnthouders" ;
@@ -478,7 +478,7 @@
  		sh:datatype <http://www.w3.org/2001/XMLSchema#integer> ;
  		sh:minCount 1 ;
  		sh:maxCount 1 ;
-		ex:usageNote '47'
+		lblodBesluit:usageNote '47'
  	] ;
  	sh:property [
  		sh:name "aantalTegenstanders" ;
@@ -488,7 +488,7 @@
  		sh:datatype <http://www.w3.org/2001/XMLSchema#integer> ;
  		sh:minCount 1 ;
  		sh:maxCount 1 ;
-		ex:usageNote '48'
+		lblodBesluit:usageNote '48'
  	] ;
  	sh:property [
  		sh:name "aantalVoorstanders" ;
@@ -498,7 +498,7 @@
  		sh:datatype <http://www.w3.org/2001/XMLSchema#integer> ;
  		sh:minCount 1 ;
  		sh:maxCount 1 ;
-		ex:usageNote '49'
+		lblodBesluit:usageNote '49'
  	] ;
  	sh:property [
  		sh:name "geheim" ;
@@ -508,7 +508,7 @@
  		sh:datatype <http://www.w3.org/2001/XMLSchema#boolean> ;
  		sh:minCount 1 ;
  		sh:maxCount 1 ;
-		ex:usageNote '50'
+		lblodBesluit:usageNote '50'
  	] ;
  	sh:property [
  		sh:name "gevolg" ;
@@ -518,7 +518,7 @@
 # 		sh:datatype <http://www.w3.org/1999/02/22-rdf-syntax-ns#langString> ; # see https://github.com/rdfjs/N3.js/issues/252
  		sh:minCount 1 ;
  		sh:maxCount 1 ;
-		ex:usageNote '51	'
+		lblodBesluit:usageNote '51	'
  	] ;
  	sh:property [
  		sh:name "onderwerp" ;
@@ -528,7 +528,7 @@
 # 		sh:datatype <http://www.w3.org/1999/02/22-rdf-syntax-ns#langString> ; see https://github.com/rdfjs/N3.js/issues/252
  		sh:minCount 1 ;
  		sh:maxCount 1 ;
-		ex:usageNote '52'
+		lblodBesluit:usageNote '52'
  	] ;
  	sh:closed false .
 
@@ -543,7 +543,7 @@
  		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
  		sh:minCount 1 ;
  		sh:maxCount 1 ;
-		ex:usageNote '53'
+		lblodBesluit:usageNote '53'
  	] ;
     sh:property [
 		sh:name "inhoud" ;
@@ -553,7 +553,7 @@
 		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '54'
+		lblodBesluit:usageNote '54'
 	] ;
     sh:property [
 		sh:name "titel" ;
@@ -562,7 +562,7 @@
 		sh:path <http://data.europa.eu/eli/ontology#title> ;
 		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
 		sh:minCount 1 ;
-		ex:usageNote '55'
+		lblodBesluit:usageNote '55'
 	] ;
 	sh:property [
 		sh:name "taal" ;
@@ -573,7 +573,7 @@
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
 		qb:codeList <http://publications.europa.eu/mdr/authority/language/index.html> ;
-		ex:usageNote '56'
+		lblodBesluit:usageNote '56'
 	] ;
  	sh:closed false .
 
@@ -587,7 +587,7 @@
 		sh:class <http://data.vlaanderen.be/ns/besluit#Bestuursorgaan> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '57'
+		lblodBesluit:usageNote '57'
 	] ;
 	sh:closed false .
 
@@ -602,7 +602,7 @@
 		sh:class <http://www.w3.org/2004/02/skos/core#Concept> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '58'
+		lblodBesluit:usageNote '58'
 	] ;
 	sh:property [
 		sh:name "naam" ;
@@ -612,7 +612,7 @@
 		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '59'
+		lblodBesluit:usageNote '59'
 	] ;
 	sh:property [
 		sh:name "bestuurt" ;
@@ -622,7 +622,7 @@
 		sh:class <http://data.vlaanderen.be/ns/besluit#Bestuurseenheid> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '60'
+		lblodBesluit:usageNote '60'
 	] ;
 	sh:closed false .
 
@@ -636,7 +636,7 @@
 		sh:class <http://www.w3.org/2004/02/skos/core#Concept> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '61'
+		lblodBesluit:usageNote '61'
 	] ;
 	sh:property [
 		sh:name "naam" ;
@@ -646,7 +646,7 @@
 		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '62'
+		lblodBesluit:usageNote '62'
 	] ;
 	sh:property [
 		sh:name "werkingsgebied" ;
@@ -655,7 +655,7 @@
 		sh:class <http://www.w3.org/ns/prov#Location> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '63'
+		lblodBesluit:usageNote '63'
 	] ;
 	sh:closed false .
 
@@ -670,7 +670,7 @@
 		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
-		ex:usageNote '64'
+		lblodBesluit:usageNote '64'
 	] ;
 	sh:property [
 		sh:name "werkingsgebiedNiveau" ;
@@ -679,6 +679,6 @@
 		sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
 		sh:minCount 0 ;
 		sh:maxCount 1 ;
-		ex:usageNote '65'
+		lblodBesluit:usageNote '65'
 	] ;
 	sh:closed false .
