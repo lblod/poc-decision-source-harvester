@@ -126,7 +126,7 @@
         sh:path <http://data.vlaanderen.be/ns/besluit#heeftAanwezigeBijStart> ;
         sh:class <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
         sh:minCount 0 ;
-		lblodBesluit:usageNote '12'
+		lblodBesluit:usageNote '13'
     ] ;
     sh:property [
         sh:name "heeftAfwezigeBijStart" ;
@@ -134,7 +134,7 @@
         sh:path <http://mu.semte.ch/vocabularies/ext/heeftAfwezigeBijStart> ;
         sh:class <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
         sh:minCount 0 ;
-		lblodBesluit:usageNote '13'
+		lblodBesluit:usageNote '44'
     ] ;
     sh:property [
         sh:name "heeftVoorzitter" ;
