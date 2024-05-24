@@ -94,22 +94,74 @@ function getMunicipalities() {
       const municipalities = [];
       engine.queryBindings(`
           PREFIX nie: <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#>
-PREFIX dcterms: <http://purl.org/dc/terms/>
-select DISTINCT ?municipalityLabel ?url
-where {
-  ?scheduledJob dcterms:title ?municipalityLabel .  
-  ?scheduledTask dcterms:isPartOf ?scheduledJob ;
-  		<http://redpencil.data.gift/vocabularies/tasks/index> ?taskIndex ;
-    	<http://redpencil.data.gift/vocabularies/tasks/inputContainer> [
-     	<http://redpencil.data.gift/vocabularies/tasks/hasHarvestingCollection> [
-    		dcterms:hasPart [
-          		nie:url ?url
-      		]
-    	]
-  		]
-}
+          PREFIX dcterms: <http://purl.org/dc/terms/>
+          select DISTINCT ?municipalityLabel ?url
+          where {
+            {
+              SERVICE <https://lokaalbeslist-harvester-0.s.redhost.be/sparql> {
+                ?scheduledJob dcterms:title ?municipalityLabel .  
+                ?scheduledTask dcterms:isPartOf ?scheduledJob ;
+                      <http://redpencil.data.gift/vocabularies/tasks/index> ?taskIndex ;
+                      <http://redpencil.data.gift/vocabularies/tasks/inputContainer> [
+                      <http://redpencil.data.gift/vocabularies/tasks/hasHarvestingCollection> [
+                          dcterms:hasPart [
+                              nie:url ?url
+                          ]
+                      ]
+                ]
+              }
+            }
+            UNION {
+              SERVICE <https://lokaalbeslist-harvester-1.s.redhost.be/sparql> {
+                ?scheduledJob dcterms:title ?municipalityLabel .  
+                ?scheduledTask dcterms:isPartOf ?scheduledJob ;
+                      <http://redpencil.data.gift/vocabularies/tasks/index> ?taskIndex ;
+                      <http://redpencil.data.gift/vocabularies/tasks/inputContainer> [
+                      <http://redpencil.data.gift/vocabularies/tasks/hasHarvestingCollection> [
+                          dcterms:hasPart [
+                              nie:url ?url
+                          ]
+                      ]
+                ]
+              }
+            }
+            UNION {
+              SERVICE <https://lokaalbeslist-harvester-2.s.redhost.be/sparql> {
+                ?scheduledJob dcterms:title ?municipalityLabel .  
+                ?scheduledTask dcterms:isPartOf ?scheduledJob ;
+                      <http://redpencil.data.gift/vocabularies/tasks/index> ?taskIndex ;
+                      <http://redpencil.data.gift/vocabularies/tasks/inputContainer> [
+                      <http://redpencil.data.gift/vocabularies/tasks/hasHarvestingCollection> [
+                          dcterms:hasPart [
+                              nie:url ?url
+                          ]
+                      ]
+                ]
+              }
+            }
+            UNION {
+              SERVICE <https://lokaalbeslist-harvester-3.s.redhost.be/sparql> {
+                ?scheduledJob dcterms:title ?municipalityLabel .  
+                ?scheduledTask dcterms:isPartOf ?scheduledJob ;
+                      <http://redpencil.data.gift/vocabularies/tasks/index> ?taskIndex ;
+                      <http://redpencil.data.gift/vocabularies/tasks/inputContainer> [
+                      <http://redpencil.data.gift/vocabularies/tasks/hasHarvestingCollection> [
+                          dcterms:hasPart [
+                              nie:url ?url
+                          ]
+                      ]
+                ]
+              }
+            }
+          }
+          ORDER BY ?municipalityLabel
           `, {
-        sources: ['https://qa.harvesting-self-service.lblod.info/sparql'],
+        sources: [
+          'https://lokaalbeslist-harvester-0.s.redhost.be/sparql',
+          'https://lokaalbeslist-harvester-1.s.redhost.be/sparql',
+          'https://lokaalbeslist-harvester-2.s.redhost.be/sparql',
+          'https://lokaalbeslist-harvester-3.s.redhost.be/sparql'
+        ],
         httpRetryCount: NUMBER_OF_RETRY_COUNTS,
         httpRetryDelay: 10000,
         httpRetryOnServerError: true
